@@ -1,8 +1,13 @@
--- Go Language Server (gopls) Configuration
+-- Go 언어 서버 (gopls) 설정
 local M = {}
 
 function M.setup(capabilities)
-  require('lspconfig').gopls.setup({
+  vim.lsp.config.gopls = {
+    cmd = { 'gopls' },
+    filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
+    root_dir = function(fname)
+      return vim.fs.root(fname, { 'go.work', 'go.mod', '.git' })
+    end,
     capabilities = capabilities,
     settings = {
       gopls = {
@@ -25,7 +30,8 @@ function M.setup(capabilities)
         },
       },
     },
-  })
+  }
+  vim.lsp.enable('gopls')
 end
 
 return M

@@ -1,12 +1,11 @@
 -- LSP 설정 및 관련 플러그인
 return {
-  -- LSP 설정
+  -- LSP 설정 (Neovim 0.11+ 내장 vim.lsp.config 사용)
   {
-    'neovim/nvim-lspconfig',
-    event = { 'BufReadPre', 'BufNewFile' },
+    'hrsh7th/nvim-cmp', -- 자동완성을 위한 메인 플러그인
+    event = { 'BufReadPre', 'BufNewFile', 'InsertEnter' },
     dependencies = {
-      -- 자동완성
-      'hrsh7th/nvim-cmp',
+      -- 자동완성 소스
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-buffer',
       'hrsh7th/cmp-path',
@@ -19,19 +18,6 @@ return {
       -- 공통 LSP 설정 및 키바인딩 로드
       require('lsp')
     end,
-  },
-
-  -- 자동완성 플러그인
-  {
-    'hrsh7th/nvim-cmp',
-    event = 'InsertEnter',
-    dependencies = {
-      'hrsh7th/cmp-nvim-lsp',
-      'hrsh7th/cmp-buffer',
-      'hrsh7th/cmp-path',
-      'L3MON4D3/LuaSnip',
-      'saadparwaiz1/cmp_luasnip',
-    },
   },
 
   -- 스니펫 엔진
@@ -61,7 +47,7 @@ return {
         lua = { 'stylua' },
         go = { 'goimports', 'gofmt' },
         java = { 'google-java-format' },
-        nix = { 'nixpkgs-fmt' },
+        nix = { 'alejandra' },
         yaml = { 'prettier' },
         javascript = { 'prettier' },
         typescript = { 'prettier' },
@@ -80,17 +66,22 @@ return {
     config = function()
       local lint = require('lint')
 
+      -- 실제로 설치된 린터만 설정 (KISS 원칙)
       lint.linters_by_ft = {
         go = { 'golangcilint' },
         javascript = { 'eslint' },
         typescript = { 'eslint' },
-        yaml = { 'yamllint' },
+        yaml = { 'yamllint' }, -- language.nix에 설치됨
       }
 
       -- 저장 및 텍스트 변경 시 자동 린트
       vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost', 'InsertLeave' }, {
         callback = function()
-          require('lint').try_lint()
+          -- 린터가 설치되어 있을 때만 실행
+          local ok = pcall(require('lint').try_lint)
+          if not ok then
+            -- 에러 무시 (린터 미설치)
+          end
         end,
       })
     end,

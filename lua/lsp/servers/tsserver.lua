@@ -1,8 +1,13 @@
--- TypeScript Language Server Configuration
+-- TypeScript 언어 서버 설정
 local M = {}
 
 function M.setup(capabilities)
-  require('lspconfig').tsserver.setup({
+  vim.lsp.config.tsserver = {
+    cmd = { 'typescript-language-server', '--stdio' },
+    filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx' },
+    root_dir = function(fname)
+      return vim.fs.root(fname, { 'tsconfig.json', 'jsconfig.json', 'package.json', '.git' })
+    end,
     capabilities = capabilities,
     settings = {
       typescript = {
@@ -44,7 +49,8 @@ function M.setup(capabilities)
         },
       },
     },
-  })
+  }
+  vim.lsp.enable('tsserver')
 end
 
 return M

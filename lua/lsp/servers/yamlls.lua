@@ -1,8 +1,13 @@
--- YAML Language Server Configuration
+-- YAML 언어 서버 설정
 local M = {}
 
 function M.setup(capabilities)
-  require('lspconfig').yamlls.setup({
+  vim.lsp.config.yamlls = {
+    cmd = { 'yaml-language-server', '--stdio' },
+    filetypes = { 'yaml', 'yaml.docker-compose', 'yaml.gitlab' },
+    root_dir = function(fname)
+      return vim.fs.root(fname, { '.git' })
+    end,
     capabilities = capabilities,
     settings = {
       yaml = {
@@ -28,7 +33,8 @@ function M.setup(capabilities)
         hover = true,
       },
     },
-  })
+  }
+  vim.lsp.enable('yamlls')
 end
 
 return M

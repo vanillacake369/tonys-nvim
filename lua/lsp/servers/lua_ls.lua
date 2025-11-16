@@ -1,34 +1,39 @@
--- Lua Language Server Configuration
+-- Lua 언어 서버 설정
 local M = {}
 
 function M.setup(capabilities)
-  require('lspconfig').lua_ls.setup({
+  vim.lsp.config.lua_ls = {
+    cmd = { 'lua-language-server' },
+    filetypes = { 'lua' },
+    root_dir = function(fname)
+      return vim.fs.root(fname, { '.luarc.json', '.luarc.jsonc', '.luacheckrc', '.stylua.toml', 'stylua.toml', 'selene.toml', 'selene.yml', '.git' })
+    end,
     capabilities = capabilities,
     settings = {
       Lua = {
         runtime = {
-          -- Tell the language server which version of Lua you're using
+          -- 사용 중인 Lua 버전 지정
           version = 'LuaJIT',
         },
         diagnostics = {
-          -- Recognize the `vim` global
+          -- `vim` 전역 변수 인식
           globals = { 'vim' },
         },
         workspace = {
-          -- Make the server aware of Neovim runtime files
+          -- Neovim 런타임 파일 인식
           library = vim.api.nvim_get_runtime_file('', true),
           checkThirdParty = false,
         },
         telemetry = {
           enable = false,
         },
-        -- Do not send telemetry data containing a randomized but unique identifier
         completion = {
           callSnippet = 'Replace',
         },
       },
     },
-  })
+  }
+  vim.lsp.enable('lua_ls')
 end
 
 return M

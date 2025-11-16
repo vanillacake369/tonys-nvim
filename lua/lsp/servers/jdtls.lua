@@ -1,8 +1,13 @@
--- Java Language Server (jdtls) Configuration
+-- Java 언어 서버 (jdtls) 설정
 local M = {}
 
 function M.setup(capabilities)
-  require('lspconfig').jdtls.setup({
+  vim.lsp.config.jdtls = {
+    cmd = { 'jdt-language-server' },
+    filetypes = { 'java' },
+    root_dir = function(fname)
+      return vim.fs.root(fname, { '.git', 'mvnw', 'gradlew', 'pom.xml', 'build.gradle' })
+    end,
     capabilities = capabilities,
     settings = {
       java = {
@@ -45,7 +50,7 @@ function M.setup(capabilities)
         },
         configuration = {
           runtimes = {
-            -- Add your Java runtimes here if needed
+            -- 필요시 Java 런타임 추가
             -- {
             --   name = "JavaSE-11",
             --   path = "/path/to/jdk-11",
@@ -58,7 +63,8 @@ function M.setup(capabilities)
         },
       },
     },
-  })
+  }
+  vim.lsp.enable('jdtls')
 end
 
 return M

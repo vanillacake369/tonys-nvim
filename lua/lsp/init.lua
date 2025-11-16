@@ -92,25 +92,20 @@ end
 
 -- LSP 핸들러 커스터마이징
 local function setup_handlers()
-  -- 진단 아이콘
-  local signs = {
-    { name = 'DiagnosticSignError', text = '' },
-    { name = 'DiagnosticSignWarn',  text = '' },
-    { name = 'DiagnosticSignHint',  text = '' },
-    { name = 'DiagnosticSignInfo',  text = '' },
-  }
-
-  for _, sign in ipairs(signs) do
-    vim.fn.sign_define(sign.name, { texthl = sign.name, text = sign.text, numhl = '' })
-  end
-
-  -- 진단 설정
+  -- 진단 설정 (Neovim 0.11+ 새로운 API)
   vim.diagnostic.config({
     virtual_text = {
       prefix = '●',
       spacing = 4,
     },
-    signs = true,
+    signs = {
+      text = {
+        [vim.diagnostic.severity.ERROR] = '',
+        [vim.diagnostic.severity.WARN] = '',
+        [vim.diagnostic.severity.HINT] = '',
+        [vim.diagnostic.severity.INFO] = '',
+      },
+    },
     update_in_insert = false,
     underline = true,
     severity_sort = true,
@@ -160,7 +155,7 @@ local function load_servers()
     'lua_ls',
     'gopls',
     'jdtls',
-    'nil_ls',
+    'nixd',
     'yamlls',
     'tsserver',
   }
