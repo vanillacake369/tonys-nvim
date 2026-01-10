@@ -13,7 +13,16 @@ return {
       enabled = true,
       timeout = 3000,
     },
-    picker = { enabled = true },
+    picker = { 
+        hidden = true,
+        ignored = true,
+        sources = {
+            explorer = {
+                hidden = true,
+                ignored = true,
+            }
+        }
+    },
     quickfile = { enabled = true },
     scope = { enabled = true },
     scroll = { enabled = true },
@@ -26,6 +35,7 @@ return {
     { "<leader>:", function() Snacks.picker.command_history() end, desc = "Command History" },
     { "<leader>e", function() Snacks.explorer() end, desc = "File Explorer" },
     -- 파일 찾기
+    -- TODO : 어떻게 which-key 에 그룹핑 ?
     { "<leader>fb", function() Snacks.picker.buffers() end, desc = "Buffers" },
     { "<leader>fc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config") }) end, desc = "Find Config File" },
     { "<leader>ff", function() Snacks.picker.files() end, desc = "Find Files" },
@@ -54,6 +64,7 @@ return {
         end
 
         -- Toggle 키맵 생성
+        -- TODO : 어떻게 which-key 에 그룹핑 ?
         Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>us")
         Snacks.toggle.option("wrap", { name = "Wrap" }):map("<leader>uw")
         Snacks.toggle.option("relativenumber", { name = "Relative Number" }):map("<leader>uL")

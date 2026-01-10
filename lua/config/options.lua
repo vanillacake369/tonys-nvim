@@ -14,3 +14,7 @@ vim.opt.wrap = false
 
 -- Incremental Search
 vim.opt.incsearch = true
+
+-- 비주얼 모드에서 들여쓰기 후 선택 영역 유지
+vim.keymap.set("v", "<", "<gv")
+vim.keymap.set("v", ">", ">gv")
