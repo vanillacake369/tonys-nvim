@@ -1,6 +1,3 @@
--- Lazy.nvim Plugin Manager Bootstrap and Setup
-
--- Bootstrap Lazy.nvim installation
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   vim.fn.system({
@@ -14,13 +11,12 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Setup Lazy.nvim with plugin specifications
 require("lazy").setup({
   spec = {
-    { import = "plugins" }, -- Auto-import all files in plugins/
+    { import = "plugins" },
   },
-  checker = { enabled = true },    -- Automatically check for updates
+  checker = { enabled = true, notify = false },
   change_detection = {
-    notify = false                 -- Disable reload notifications
+    notify = false
   },
 })
