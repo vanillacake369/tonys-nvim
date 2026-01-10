@@ -20,7 +20,7 @@ return {
                 disable = {
                     background = false,
                 },
-                lualine_style = "default",
+                lualine_style = "stealth",
                 async_loading = true,
             })
             vim.cmd.colorscheme('material')
@@ -32,8 +32,16 @@ return {
         config = function()
             require('lualine').setup({
                 options = {
-                    theme = "material"
-                }
+                    theme = 'material',
+                    globalstatus = true,
+                    component_separators = '', -- 구분선 제거 (깔끔하게)
+                    section_separators = '',   -- 구분선 제거
+                },
+                sections = {
+                    lualine_a = { 'mode' },    -- 모드(INSERT/NORMAL)만 표시
+                    lualine_b = {},            -- git branch 제거
+                    lualine_y = {},            -- progress(5%) 제거
+                },
             })
         end
     },
