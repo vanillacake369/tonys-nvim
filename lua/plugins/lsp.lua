@@ -1,3 +1,201 @@
+local languages = {
+    python = {
+        lsp_server = "pylsp",
+        lsp_opts = {
+            cmd = { "pylsp" },
+        },
+        treesitter = {
+            "python",
+            "ninja",
+            "rst",
+        }
+    },
+    java = {
+        lsp_server = "jdtls",
+        lsp_opts = {
+            cmd = { "jdtls" },
+        },
+        treesitter = {
+            "java",
+        }
+    },
+    c_cpp = {
+        lsp_server = "clangd",
+        lsp_opts = {
+            cmd = { "clangd" },
+        },
+        treesitter = {
+            "c",
+            "cpp",
+        }
+    },
+    yaml = {
+        lsp_server = "yamlls",
+        lsp_opts = {
+            cmd = { "yaml-language-server", "--stdio" },
+            settings = {
+                yaml = {
+                    schemas = {
+                        kubernetes = "*.yaml",
+                        ["http://json.schemastore.org/github-workflow"] = ".github/workflows/*",
+                        ["http://json.schemastore.org/github-action"] = ".github/action.{yml,yaml}",
+                        ["http://json.schemastore.org/ansible-stable-2.9"] = "roles/tasks/*.{yml,yaml}",
+                        ["http://json.schemastore.org/prettierrc"] = ".prettierrc.{yml,yaml}",
+                        ["http://json.schemastore.org/kustomization"] = "kustomization.{yml,yaml}",
+                        ["http://json.schemastore.org/ansible-playbook"] = "*play*.{yml,yaml}",
+                        ["http://json.schemastore.org/chart"] = "Chart.{yml,yaml}",
+                        ["https://json.schemastore.org/dependabot-v2"] = ".github/dependabot.{yml,yaml}",
+                        ["https://json.schemastore.org/gitlab-ci"] = "*gitlab-ci*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json"] = "*api*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] = "*docker-compose*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json"] = "*flow*.{yml,yaml}",
+                    },
+                }
+            }
+        },
+        treesitter = {
+            "yaml",
+        }
+    },
+    go = {
+        lsp_server = "gopls",
+        lsp_opts = {
+            cmd = { "gopls" },
+        },
+        treesitter = {
+            "go",
+            "gomod",
+            "gowork",
+            "gosum",
+        }
+    },
+    javascript = {
+        lsp_server = "ts_ls",
+        lsp_opts = {
+            cmd = { "typescript-language-server", "--stdio" },
+        },
+        treesitter = {
+            "javascript",
+            "typescript",
+            "tsx",
+        }
+    },
+    nix = {
+        lsp_server = "nil_ls",
+        lsp_opts = {
+            cmd = { "nil" },
+        },
+        treesitter = {
+            "nix",
+        }
+    },
+    lua = {
+        lsp_server = "lua_ls",
+        lsp_opts = {
+            cmd = { "lua-language-server" },
+        },
+        treesitter = {
+            "lua",
+        }
+    },
+    terraform = {
+        lsp_server = "terraformls",
+        lsp_opts = {
+            cmd = { "terraform-ls", "serve" },
+        },
+        treesitter = {
+            "terraform",
+            "hcl",
+        }
+    },
+    bash = {
+        lsp_server = "bashls",
+        lsp_opts = {
+            cmd = { "bash-language-server", "start" },
+        },
+        treesitter = {
+            "bash",
+        }
+    },
+    html = {
+        lsp_server = "html",
+        lsp_opts = {
+            cmd = { "vscode-html-language-server", "--stdio" },
+        },
+        treesitter = {
+            "html",
+        }
+    },
+    css = {
+        lsp_server = "cssls",
+        lsp_opts = {
+            cmd = { "vscode-css-language-server", "--stdio" },
+        },
+        treesitter = {
+            "css",
+        }
+    },
+    json = {
+        lsp_server = "jsonls",
+        lsp_opts = {
+            cmd = { "vscode-json-language-server", "--stdio" },
+        },
+        treesitter = {
+            "json",
+            "json5",
+        }
+    },
+    docker = {
+        lsp_server = "docker_compose_language_service",
+        lsp_opts = {
+            cmd = { "docker-compose-langserver", "--stdio" },
+        },
+        treesitter = {
+            "dockerfile",
+        }
+    },
+    helm = {
+        treesitter = {
+            "helm",
+        }
+    },
+    markdown = {
+        treesitter = {
+            "markdown",
+            "markdown_inline",
+        }
+    },
+    other = {
+        treesitter = {
+            "query",
+            "regex",
+            "vim",
+        }
+    }
+}
+
+local function collect_lsp_servers()
+    local servers = {}
+    for _, lang_config in pairs(languages) do
+        if lang_config.lsp_server then
+            servers[lang_config.lsp_server] = lang_config.lsp_opts or {}
+        end
+    end
+    return servers
+end
+
+local function collect_treesitter_parsers()
+    local parsers = {}
+    for _, lang_config in pairs(languages) do
+        if lang_config.treesitter then
+            for _, parser in ipairs(lang_config.treesitter) do
+                table.insert(parsers, parser)
+            end
+        end
+    end
+    return parsers
+end
+
 return {
     {
         "b0o/SchemaStore.nvim",
@@ -11,88 +209,71 @@ return {
         config = function()
             local configs = require("nvim-treesitter.configs")
             configs.setup({
-                highlist = {
+                highlight = {
                     enable = true,
                 },
                 indent = { enable = true },
-                autotage = { enable = true }, 
-                ensure_installed = {
-                    "bash",
-                    "html",
-                    "helm",
-                    "dockerfile",
-                    "java",
-                    "javascript",
-                    "json5",
-                    "lua",
-                    "markdown",
-                    "markdown_inline",
-                    "nix",
-                    "terraform", 
-                    "hcl",
-                    "python",
-                    "query",
-                    "regex",
-                    "tsx",
-                    "typescript",
-                    "vim",
-                    "go", 
-                    "gomod", 
-                    "gowork", 
-                    "gosum",
-                    "yaml",
-                },
+                autotag = { enable = true },
+                ensure_installed = collect_treesitter_parsers(),
             })
         end
     },
     {
-        -- TODO : 어떻게 하면 mason 이 아닌 nix 패키지를 확인하고
-        -- nix 에서 찾을 수 없다면 에러가 발생하게 하지 ? 
         "neovim/nvim-lspconfig",
-        opts = {
-            servers = {
-                pylsp = {},
-                jdtls = {},
-                clangd = {},
-                copilot = { enabled = false },
-                -- k8s lsp
-                -- Refered to following sources
-                -- https://www.reddit.com/r/neovim/comments/ze9gbe/kubernetes_auto_completion_support_in_neovim/
-                -- https://www.youtube.com/watch?v=pKCzpfqBbYs
-                yamlls = {
-                    settings = {
-                        yaml = {
-                            schemas = {
-                                kubernetes = "*.yaml",
-                                ["http://json.schemastore.org/github-workflow"] = ".github/workflows/*",
-                                ["http://json.schemastore.org/github-action"] = ".github/action.{yml,yaml}",
-                                ["http://json.schemastore.org/ansible-stable-2.9"] = "roles/tasks/*.{yml,yaml}",
-                                ["http://json.schemastore.org/prettierrc"] = ".prettierrc.{yml,yaml}",
-                                ["http://json.schemastore.org/kustomization"] = "kustomization.{yml,yaml}",
-                                ["http://json.schemastore.org/ansible-playbook"] = "*play*.{yml,yaml}",
-                                ["http://json.schemastore.org/chart"] = "Chart.{yml,yaml}",
-                                ["https://json.schemastore.org/dependabot-v2"] = ".github/dependabot.{yml,yaml}",
-                                ["https://json.schemastore.org/gitlab-ci"] = "*gitlab-ci*.{yml,yaml}",
-                                ["https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json"] = "*api*.{yml,yaml}",
-                                ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] = "*docker-compose*.{yml,yaml}",
-                                ["https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json"] = "*flow*.{yml,yaml}",
-                            },
-                        }
-                    }
-                }
-            },
-        },
-    },
-    {
-        "zbirenbaum/copilot.lua",
-        opts = function()
-            LazyVim.cmp.actions.ai_accept = function()
-                if require("copilot.suggestion").is_visible() then
-                    LazyVim.create_undo()
-                    require("copilot.suggestion").accept()
-                    return true
+        config = function()
+            local servers = collect_lsp_servers()
+
+            vim.api.nvim_create_autocmd('LspAttach', {
+                callback = function(args)
+                    local opts = { buffer = args.buf }
+                    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+                    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+                    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+                end,
+            })
+
+            for server, config in pairs(servers) do
+                local cmd
+                if config.cmd and type(config.cmd) == "table" then
+                    cmd = config.cmd[1]
+                elseif config.cmd and type(config.cmd) == "string" then
+                    cmd = config.cmd
+                else
+                    cmd = server
+                end
+
+                if vim.fn.executable(cmd) == 1 then
+                    -- Use new vim.lsp.config API (Nvim 0.11+)
+                    vim.lsp.config(server, config)
+                    vim.lsp.enable(server)
+                else
+                    vim.notify(
+                        string.format("LSP '%s' not found. Install via nix.", cmd),
+                        vim.log.levels.ERROR
+                    )
                 end
             end
         end,
+    },
+    {
+        "zbirenbaum/copilot.lua",
+        opts = {
+            suggestion = {
+                enabled = true,
+                auto_trigger = true,
+                keymap = {
+                    accept = "<M-l>",
+                    accept_word = false,
+                    accept_line = false,
+                    next = "<M-]>",
+                    prev = "<M-[>",
+                    dismiss = "<C-]>",
+                },
+            },
+            panel = {
+                enabled = true,
+                auto_refresh = false,
+            },
+        },
     },
 }
