@@ -1,6 +1,3 @@
--- Language configurations for LSP, Treesitter, and Linters
--- Single source of truth for all language-related settings
-
 local M = {}
 
 M.languages = {
@@ -14,7 +11,8 @@ M.languages = {
             "ninja",
             "rst",
         },
-        linters = { "ruff" }
+        linters = { "ruff" },
+        formatters = { "ruff_format", "black" },
     },
     java = {
         lsp_server = "jdtls",
@@ -23,7 +21,8 @@ M.languages = {
         },
         treesitter = {
             "java",
-        }
+        },
+        formatters = { "google-java-format" },
     },
     c_cpp = {
         lsp_server = "clangd",
@@ -52,9 +51,12 @@ M.languages = {
                         ["http://json.schemastore.org/chart"] = "Chart.{yml,yaml}",
                         ["https://json.schemastore.org/dependabot-v2"] = ".github/dependabot.{yml,yaml}",
                         ["https://json.schemastore.org/gitlab-ci"] = "*gitlab-ci*.{yml,yaml}",
-                        ["https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json"] = "*api*.{yml,yaml}",
-                        ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] = "*docker-compose*.{yml,yaml}",
-                        ["https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json"] = "*flow*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json"] =
+                        "*api*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] =
+                        "*docker-compose*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json"] =
+                        "*flow*.{yml,yaml}",
                     },
                 }
             }
@@ -62,7 +64,8 @@ M.languages = {
         treesitter = {
             "yaml",
         },
-        linters = { "yamllint" }
+        linters = { "yamllint" },
+        formatters = { "prettier", "yamlfmt" }
     },
     go = {
         lsp_server = "gopls",
@@ -75,7 +78,8 @@ M.languages = {
             "gowork",
             "gosum",
         },
-        linters = { "golangcilint" }
+        linters = { "golangcilint" },
+        formatters = { "goimports", "gofmt" }
     },
     javascript = {
         lsp_server = "ts_ls",
@@ -87,7 +91,8 @@ M.languages = {
             "typescript",
             "tsx",
         },
-        linters = { "biomejs" }
+        linters = { "biomejs" },
+        formatters = { "biome" }
     },
     nix = {
         lsp_server = "nil_ls",
@@ -97,7 +102,8 @@ M.languages = {
         treesitter = {
             "nix",
         },
-        linters = { "statix", "deadnix" }
+        linters = { "statix", "deadnix" },
+        formatters = { "alejandra" }
     },
     lua = {
         lsp_server = "lua_ls",
@@ -107,7 +113,8 @@ M.languages = {
         treesitter = {
             "lua",
         },
-        linters = { "selene" }
+        linters = { "selene" },
+        formatters = { "stylua" }
     },
     terraform = {
         lsp_server = "terraformls",
@@ -118,7 +125,8 @@ M.languages = {
             "terraform",
             "hcl",
         },
-        linters = { "tflint" }
+        linters = { "tflint" },
+        formatters = { "terraform_fmt" }
     },
     bash = {
         lsp_server = "bashls",
@@ -128,7 +136,8 @@ M.languages = {
         treesitter = {
             "bash",
         },
-        linters = { "shellcheck" }
+        linters = { "shellcheck" },
+        formatters = { "shfmt" }
     },
     html = {
         lsp_server = "html",
@@ -137,7 +146,8 @@ M.languages = {
         },
         treesitter = {
             "html",
-        }
+        },
+        formatters = { "prettier" }
     },
     css = {
         lsp_server = "cssls",
@@ -146,7 +156,8 @@ M.languages = {
         },
         treesitter = {
             "css",
-        }
+        },
+        formatters = { "prettier" }
     },
     json = {
         lsp_server = "jsonls",
@@ -156,7 +167,8 @@ M.languages = {
         treesitter = {
             "json",
             "json5",
-        }
+        },
+        formatters = { "prettier" }
     },
     docker = {
         lsp_server = "docker_compose_language_service",
@@ -171,13 +183,15 @@ M.languages = {
     helm = {
         treesitter = {
             "helm",
-        }
+        },
+        formatters = { "prettier" }
     },
     markdown = {
         treesitter = {
             "markdown",
             "markdown_inline",
-        }
+        },
+        formatters = { "prettier" }
     },
     other = {
         treesitter = {
@@ -188,55 +202,55 @@ M.languages = {
     }
 }
 
--- Collect all LSP server configurations
+--- 범용 수집 함수 (Helper)
+local function collect_config(key, is_list)
+    local result = {}
+    for lang_name, config in pairs(M.languages) do
+        local data = config[key]
+        if data then
+            if is_list then
+                -- data가 테이블인지 확인하여 LSP 에러 방지
+                if type(data) == "table" then
+                    for _, v in ipairs(data) do
+                        table.insert(result, v)
+                    end
+                end
+            else
+                -- filetype별 매핑
+                local fts = config.filetypes or { lang_name }
+                for _, ft in ipairs(fts) do
+                    result[ft] = data
+                end
+            end
+        end
+    end
+    return result
+end
+
+-- 1. LSP: { [filetype] = opts } 매핑 반환 (lsp_server가 있는 경우만)
 function M.collect_lsp_servers()
     local servers = {}
-    for _, lang_config in pairs(M.languages) do
-        if lang_config.lsp_server then
-            servers[lang_config.lsp_server] = lang_config.lsp_opts or {}
+    for _, config in pairs(M.languages) do
+        if config.lsp_server then
+            servers[config.lsp_server] = config.lsp_opts or {}
         end
     end
     return servers
 end
 
--- Collect all Treesitter parsers
+-- 2. Treesitter: 모든 파서 이름을 하나의 리스트로 반환
 function M.collect_treesitter_parsers()
-    local parsers = {}
-    for _, lang_config in pairs(M.languages) do
-        if lang_config.treesitter then
-            for _, parser in ipairs(lang_config.treesitter) do
-                table.insert(parsers, parser)
-            end
-        end
-    end
-    return parsers
+    return collect_config("treesitter", true)
 end
 
--- Collect linters organized by filetype
+-- 3. Linters: { [filetype] = { linter1, ... } } 매핑 반환
 function M.collect_linters()
-    local linters_by_ft = {}
+    return collect_config("linters", false)
+end
 
-    -- Mapping from language config names to filetypes
-    local filetype_mapping = {
-        bash = { "bash", "sh" },
-        javascript = { "javascript", "typescript", "javascriptreact", "typescriptreact" },
-        terraform = { "terraform", "tf" },
-        docker = { "dockerfile" },
-    }
-
-    for lang_name, lang_config in pairs(M.languages) do
-        if lang_config.linters then
-            -- Get filetypes for this language
-            local filetypes = filetype_mapping[lang_name] or { lang_name }
-
-            -- Assign linters to each filetype
-            for _, ft in ipairs(filetypes) do
-                linters_by_ft[ft] = lang_config.linters
-            end
-        end
-    end
-
-    return linters_by_ft
+-- 4. Formatters: { [filetype] = { fmt1, ... } } 매핑 반환
+function M.collect_formatters()
+    return collect_config("formatters", false)
 end
 
 return M

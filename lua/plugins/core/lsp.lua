@@ -1,6 +1,3 @@
--- LSP Server Configuration
--- Manages Language Server Protocol setup for all languages
-
 return {
     "neovim/nvim-lspconfig",
     config = function()
