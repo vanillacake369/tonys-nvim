@@ -203,6 +203,38 @@ return {
         version = false,
     },
     {
+        "mfussenegger/nvim-lint",
+        event = { "BufReadPost", "BufNewFile" }, -- 표준 이벤트 사용
+        config = function()
+            local lint = require("lint")
+
+            lint.linters_by_ft = {
+                bash = { "shellcheck" },
+                sh = { "shellcheck" },
+                go = { "golangcilint" },
+                python = { "ruff" },
+                nix = { "statix", "deadnix" },
+                lua = { "selene" },
+                terraform = { "tflint" },
+                tf = { "tflint" },
+                dockerfile = { "hadolint" },
+                javascript = { "biomejs" },
+                typescript = { "biomejs" },
+                javascriptreact = { "biomejs" },
+                typescriptreact = { "biomejs" },
+                yaml = { "yamllint" },
+            }
+
+            -- 린트 실행 자동 명령
+            vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
+                group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
+                callback = function()
+                    lint.try_lint()
+                end,
+            })
+        end,
+    },
+    {
         'nvim-treesitter/nvim-treesitter',
         lazy = false,
         build = ':TSUpdate',
@@ -222,6 +254,24 @@ return {
         "neovim/nvim-lspconfig",
         config = function()
             local servers = collect_lsp_servers()
+
+            -- 진단 설정
+            vim.diagnostic.config({
+                virtual_text = {
+                    prefix = '●',
+                    source = "if_many",
+                },
+                underline = true,
+                signs = true,
+                update_in_insert = false,
+            })
+
+            -- 자동 팝업 설정
+            vim.api.nvim_create_autocmd("CursorHold", {
+                callback = function()
+                    vim.diagnostic.open_float(nil, { focusable = false })
+                end,
+            })
 
             vim.api.nvim_create_autocmd('LspAttach', {
                 callback = function(args)
