@@ -1,6 +1,7 @@
 return {
     "stevearc/conform.nvim",
-    event = { "BufWritePre" },
+    event = { "BufWritePost", "BufReadPost", "InsertLeave" },
+    -- event = { "BufWritePre" },
     lazy = true,
     cmd = "ConformInfo",
     opts = function()
@@ -21,9 +22,10 @@ return {
             formatters_by_ft = lang.collect_formatters(),
 
             formatters = {
-                injected = { options = { ignore_errors = true } },
-                shfmt = {
-                    prepend_args = { "-i", tostring(vim.o.shiftwidth) },
+                injected = {
+                    options = {
+                        ignore_errors = true,
+                    },
                 },
             },
         }

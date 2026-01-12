@@ -32,7 +32,7 @@ M.languages = {
         treesitter = {
             "c",
             "cpp",
-        }
+        },
     },
     yaml = {
         lsp_server = "yamlls",
@@ -51,21 +51,18 @@ M.languages = {
                         ["http://json.schemastore.org/chart"] = "Chart.{yml,yaml}",
                         ["https://json.schemastore.org/dependabot-v2"] = ".github/dependabot.{yml,yaml}",
                         ["https://json.schemastore.org/gitlab-ci"] = "*gitlab-ci*.{yml,yaml}",
-                        ["https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json"] =
-                        "*api*.{yml,yaml}",
-                        ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] =
-                        "*docker-compose*.{yml,yaml}",
-                        ["https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json"] =
-                        "*flow*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json"] = "*api*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] = "*docker-compose*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json"] = "*flow*.{yml,yaml}",
                     },
-                }
-            }
+                },
+            },
         },
         treesitter = {
             "yaml",
         },
         linters = { "yamllint" },
-        formatters = { "prettier", "yamlfmt" }
+        formatters = { "prettier", "yamlfmt" },
     },
     go = {
         lsp_server = "gopls",
@@ -79,7 +76,7 @@ M.languages = {
             "gosum",
         },
         linters = { "golangcilint" },
-        formatters = { "goimports", "gofmt" }
+        formatters = { "goimports", "gofmt" },
     },
     javascript = {
         lsp_server = "ts_ls",
@@ -92,18 +89,18 @@ M.languages = {
             "tsx",
         },
         linters = { "biomejs" },
-        formatters = { "biome" }
+        formatters = { "biome" },
     },
     nix = {
-        lsp_server = "nil_ls",
+        lsp_server = "nixd",
         lsp_opts = {
-            cmd = { "nil" },
+            cmd = { "nixd" },
         },
         treesitter = {
             "nix",
         },
         linters = { "statix", "deadnix" },
-        formatters = { "alejandra" }
+        formatters = { "alejandra" },
     },
     lua = {
         lsp_server = "lua_ls",
@@ -114,7 +111,7 @@ M.languages = {
             "lua",
         },
         linters = { "selene" },
-        formatters = { "stylua" }
+        formatters = { "stylua" },
     },
     terraform = {
         lsp_server = "terraformls",
@@ -126,7 +123,7 @@ M.languages = {
             "hcl",
         },
         linters = { "tflint" },
-        formatters = { "terraform_fmt" }
+        formatters = { "terraform_fmt" },
     },
     bash = {
         lsp_server = "bashls",
@@ -137,7 +134,7 @@ M.languages = {
             "bash",
         },
         linters = { "shellcheck" },
-        formatters = { "shfmt" }
+        formatters = { "shfmt" },
     },
     html = {
         lsp_server = "html",
@@ -147,7 +144,7 @@ M.languages = {
         treesitter = {
             "html",
         },
-        formatters = { "prettier" }
+        formatters = { "prettier" },
     },
     css = {
         lsp_server = "cssls",
@@ -157,7 +154,7 @@ M.languages = {
         treesitter = {
             "css",
         },
-        formatters = { "prettier" }
+        formatters = { "prettier" },
     },
     json = {
         lsp_server = "jsonls",
@@ -168,7 +165,7 @@ M.languages = {
             "json",
             "json5",
         },
-        formatters = { "prettier" }
+        formatters = { "prettier" },
     },
     docker = {
         lsp_server = "docker_compose_language_service",
@@ -178,28 +175,28 @@ M.languages = {
         treesitter = {
             "dockerfile",
         },
-        linters = { "hadolint" }
+        linters = { "hadolint" },
     },
     helm = {
         treesitter = {
             "helm",
         },
-        formatters = { "prettier" }
+        formatters = { "prettier" },
     },
     markdown = {
         treesitter = {
             "markdown",
             "markdown_inline",
         },
-        formatters = { "prettier" }
+        formatters = { "prettier" },
     },
     other = {
         treesitter = {
             "query",
             "regex",
             "vim",
-        }
-    }
+        },
+    },
 }
 
 --- 범용 수집 함수 (Helper)
