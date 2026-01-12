@@ -16,11 +16,11 @@
 이 설정은 계층적 문서 구조로 구성되어 있습니다:
 
 - **[Core Configuration](lua/config/README.md)** - 기본 설정 파일 설명
-- **[Plugin Catalog](lua/config/plugins/README.md)** - 전체 플러그인 목록 및 분류
-  - **[UI Plugins](lua/config/plugins/ui/README.md)** - 테마, 상태바, 버퍼라인 등
-  - **[Editing Plugins](lua/config/plugins/editing/README.md)** - 편집 도구 및 유틸리티
-  - **[LSP & Language Support](lua/config/plugins/lsp/README.md)** - LSP 서버, 린터, Treesitter
-  - **[Utility Plugins](lua/config/plugins/utility/README.md)** - 지원 라이브러리
+- **플러그인 설정** - 카테고리별로 정리된 플러그인 설정
+  - **[UI Plugins](lua/plugins/ui/)** - 테마, 상태바, 버퍼라인 등
+  - **[Editing Plugins](lua/plugins/editing/)** - 편집 도구 및 유틸리티
+  - **[Navigation](lua/plugins/navigation/)** - 파일 탐색기, 검색, 대시보드
+  - **[Core Development](lua/plugins/core/)** - LSP 서버, 린터, Treesitter
 
 ## 🚀 빠른 시작
 
@@ -62,54 +62,52 @@ nvim
 | `<M-l>` | Insert | Copilot 제안 수락 |
 | `<leader>?` | Normal | 키바인딩 도움말 |
 
-> 전체 키바인딩은 [UI Plugins](lua/config/plugins/ui/README.md#which-key) 및 각 플러그인 문서를 참조하세요.
-
 ## 🎨 기능별 플러그인
 
 ### Theme & UI/UX
 
 | 기능 | 플러그인 | 상태 |
 |-----|---------|-----|
-| 컬러 테마 | [material.nvim](lua/config/plugins/ui/README.md#material-theme) | ✅ |
-| 상태바 | [lualine.nvim](lua/config/plugins/ui/README.md#lualine) | ✅ |
-| 버퍼 탭 | [bufferline.nvim](lua/config/plugins/ui/README.md#bufferline) | ✅ |
-| 다목적 UI | [snacks.nvim](lua/config/plugins/ui/README.md#snacks) | ✅ |
-| 파일 아이콘 | [nvim-web-devicons](lua/config/plugins/ui/README.md#icons) | ✅ |
-| 키바인딩 도움말 | [which-key.nvim](lua/config/plugins/ui/README.md#which-key) | ✅ |
+| 컬러 테마 | [material.nvim](lua/plugins/ui/theme.lua) | ✅ |
+| 상태바 | [lualine.nvim](lua/plugins/ui/theme.lua) | ✅ |
+| 버퍼 탭 | [bufferline.nvim](lua/plugins/ui/buffer.lua) | ✅ |
+| 다목적 UI | [snacks.nvim](lua/plugins/navigation/snacks.lua) | ✅ |
+| 파일 아이콘 | nvim-web-devicons | ✅ |
+| 키바인딩 도움말 | [which-key.nvim](lua/plugins/navigation/which-key.lua) | ✅ |
 
 ### 코드 편집
 
 | 기능 | 플러그인 | 상태 |
 |-----|---------|-----|
-| 텍스트 정렬 | [vim-easy-align](lua/config/plugins/editing/README.md#easy-align) | ✅ |
-| 자동 괄호 | [nvim-autopairs](lua/config/plugins/editing/README.md#autopairs) | ✅ |
-| 스마트 주석 | [Comment.nvim](lua/config/plugins/editing/README.md#comment) | ✅ |
-| TODO 하이라이트 | [todo-comments.nvim](lua/config/plugins/editing/README.md#todo-comments) | ✅ |
-| 멀티 커서 | [vim-visual-multi](lua/config/plugins/editing/README.md#multi-cursor) | ✅ |
+| 텍스트 정렬 | [vim-easy-align](lua/plugins/editing/easy-align.lua) | ✅ |
+| 자동 괄호 | [nvim-autopairs](lua/plugins/editing/autopairs.lua) | ✅ |
+| 스마트 주석 | [Comment.nvim](lua/plugins/editing/comment.lua) | ✅ |
+| TODO 하이라이트 | [todo-comments.nvim](lua/plugins/editing/comment.lua) | ✅ |
+| 멀티 커서 | [vim-visual-multi](lua/plugins/editing/vim-multiple-cursors.lua) | ✅ |
 
 ### 파일 탐색 & 네비게이션
 
 | 기능 | 구현 | 상태 |
 |-----|------|-----|
-| 퍼지 파인더 | [snacks.nvim picker](lua/config/plugins/ui/README.md#snacks-picker) | ✅ |
-| 파일 탐색기 | [snacks.nvim explorer](lua/config/plugins/ui/README.md#snacks-explorer) | ✅ |
-| 버퍼 관리 | [bufferline.nvim](lua/config/plugins/ui/README.md#bufferline) | ✅ |
-| 빠른 파일 열기 | [snacks.nvim quickfile](lua/config/plugins/ui/README.md#snacks-quickfile) | ✅ |
+| 퍼지 파인더 | [snacks.nvim picker](lua/plugins/navigation/snacks.lua) | ✅ |
+| 파일 탐색기 | [snacks.nvim explorer](lua/plugins/navigation/snacks.lua) | ✅ |
+| 버퍼 관리 | [bufferline.nvim](lua/plugins/ui/buffer.lua) | ✅ |
+| 빠른 파일 열기 | [snacks.nvim quickfile](lua/plugins/navigation/snacks.lua) | ✅ |
 
 ### 개발 핵심 기능
 
 | 기능 | 구현 | 상태 |
 |-----|------|-----|
-| LSP 통합 | [nvim-lspconfig](lua/config/plugins/lsp/README.md#lsp-overview) | ✅ 14개 서버 |
-| 구문 강조 | [nvim-treesitter](lua/config/plugins/lsp/README.md#treesitter) | ✅ 30+ 언어 |
-| AI 완성 | [copilot.lua](lua/config/plugins/lsp/README.md#copilot) | ✅ |
-| 린팅 | [nvim-lint](lua/config/plugins/lsp/README.md#linting) | ✅ 9개 린터 |
+| LSP 통합 | [nvim-lspconfig](lua/plugins/core/lsp.lua) | ✅ 14개 서버 |
+| 구문 강조 | [nvim-treesitter](lua/plugins/core/treesitter.lua) | ✅ 30+ 언어 |
+| AI 완성 | [copilot.lua](lua/plugins/core/copilot.lua) | ✅ |
+| 린팅 | [nvim-lint](lua/plugins/core/lint.lua) | ✅ 9개 린터 |
 
 ### 디버깅 & 테스팅
 
 | 기능 | 구현 | 상태 |
 |-----|------|-----|
-| 디버그 도구 | [snacks.nvim debug](lua/config/plugins/ui/README.md#snacks-debug) | ✅ |
+| 디버그 도구 | [snacks.nvim debug](lua/plugins/navigation/snacks.lua) | ✅ |
 | 테스트 프레임워크 | - | ⬜ 예정 |
 
 ### Git 통합
@@ -122,9 +120,9 @@ nvim
 
 | 기능 | 구현 | 상태 |
 |-----|------|-----|
-| 통합 터미널 | [snacks.nvim terminal](lua/config/plugins/ui/README.md#snacks-terminal) | ✅ |
-| 알림 시스템 | [snacks.nvim notifier](lua/config/plugins/ui/README.md#snacks-notifier) | ✅ |
-| 대시보드 | [snacks.nvim dashboard](lua/config/plugins/ui/README.md#snacks-dashboard) | ✅ |
+| 통합 터미널 | [snacks.nvim terminal](lua/plugins/navigation/snacks.lua) | ✅ |
+| 알림 시스템 | [snacks.nvim notifier](lua/plugins/navigation/snacks.lua) | ✅ |
+| 대시보드 | [snacks.nvim dashboard](lua/plugins/navigation/snacks.lua) | ✅ |
 
 ## 🌐 언어 지원
 
@@ -180,8 +178,6 @@ nvim
 - **[plenary.nvim](https://github.com/nvim-lua/plenary.nvim)** - 공통 Lua 유틸리티
 - **[SchemaStore.nvim](https://github.com/b0o/SchemaStore.nvim)** - JSON/YAML 스키마 저장소
 
-> 각 플러그인의 상세 설명은 [Plugin Catalog](lua/config/plugins/README.md)을 참조하세요.
-
 ## 📁 프로젝트 구조
 
 ```
@@ -190,44 +186,35 @@ nvim
 ├── lazy-lock.json                 # 플러그인 버전 잠금 파일
 │
 ├── lua/
-│   └── config/
-│       ├── clipboard.lua          # OSC 52 클립보드 통합
-│       ├── keybinds.lua           # 전역 키바인딩
-│       ├── lazy.lua               # Lazy.nvim 플러그인 매니저 설정
-│       ├── options.lua            # Neovim 편집기 옵션
+│   ├── config/
+│   │   ├── clipboard.lua          # OSC 52 클립보드 통합
+│   │   ├── keybinds.lua           # 전역 키바인딩
+│   │   ├── lazy.lua               # Lazy.nvim 플러그인 매니저 설정
+│   │   ├── options.lua            # Neovim 편집기 옵션
+│   │   │
+│   │   └── languages.lua          # LSP 서버 설정 (14개)
+│   │
+│   └── plugins/                   # 플러그인 설정 (18개)
+│       ├── ui/                    # 🎨 테마 & UI (2개)
+│       │   ├── theme.lua          # material.nvim + lualine.nvim
+│       │   └── buffer.lua         # bufferline.nvim
 │       │
-│       ├── lsp/                   # LSP 서버 설정 (14개)
-│       │   ├── bashls.lua
-│       │   ├── clangd.lua
-│       │   ├── cssls.lua
-│       │   ├── dockerls.lua
-│       │   ├── gopls.lua
-│       │   ├── html.lua
-│       │   ├── jdtls.lua
-│       │   ├── jsonls.lua
-│       │   ├── lua_ls.lua
-│       │   ├── nil_ls.lua
-│       │   ├── pylsp.lua
-│       │   ├── terraformls.lua
-│       │   ├── ts_ls.lua
-│       │   └── yamlls.lua
+│       ├── editing/               # 📝 코드 편집 (4개)
+│       │   ├── easy-align.lua     # vim-easy-align
+│       │   ├── autopairs.lua      # nvim-autopairs
+│       │   ├── comment.lua        # Comment.nvim + todo-comments.nvim
+│       │   └── vim-multiple-cursors.lua # vim-visual-multi
 │       │
-│       └── plugins/                # 플러그인 설정 (18개)
-│           ├── ayu.lua             # (미사용 - material.nvim 사용 중)
-│           ├── bufferline.lua      # 버퍼 탭 라인
-│           ├── comment.lua         # 주석 처리
-│           ├── copilot.lua         # AI 코드 완성
-│           ├── easy-align.lua      # 텍스트 정렬
-│           ├── lint.lua            # 린팅 프레임워크
-│           ├── lspconfig.lua       # LSP 통합
-│           ├── lualine.lua         # 상태바
-│           ├── material.lua        # Material 테마
-│           ├── nvim-autopairs.lua  # 자동 괄호
-│           ├── snacks.lua          # 다목적 UI 플러그인
-│           ├── todo-comments.lua   # TODO 하이라이트
-│           ├── treesitter.lua      # 구문 분석
-│           ├── vim-visual-multi.lua # 멀티 커서
-│           └── which-key.lua       # 키바인딩 도움말
+│       ├── navigation/            # 🔍 파일 탐색 (2개)
+│       │   ├── snacks.lua         # snacks.nvim (picker, explorer, dashboard)
+│       │   └── which-key.lua      # which-key.nvim
+│       │
+│       └── core/                  # 🔧 개발 핵심 기능 (5개)
+│           ├── lsp.lua            # nvim-lspconfig
+│           ├── treesitter.lua     # nvim-treesitter
+│           ├── lint.lua           # nvim-lint
+│           ├── copilot.lua        # copilot.lua
+│           └── trouble.lua        # trouble.nvim + SchemaStore.nvim
 │
 └── README.md                      # 이 파일
 ```
@@ -246,7 +233,12 @@ nvim
 
 ### 새 플러그인 추가하기
 
-1. `lua/config/plugins/` 디렉토리에 새 `.lua` 파일 생성
+1. 적절한 카테고리 디렉토리에 새 `.lua` 파일 생성:
+   - Theme/UI: `lua/plugins/ui/`
+   - Editing: `lua/plugins/editing/`
+   - Navigation: `lua/plugins/navigation/`
+   - Core Development: `lua/plugins/core/`
+
 2. 플러그인 스펙을 반환하는 형식으로 작성:
 
 ```lua
