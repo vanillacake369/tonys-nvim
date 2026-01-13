@@ -4,34 +4,64 @@ M.definitions = {
 	lsp = {
 		name = "+LSP",
 		prefix = nil, -- no prefix (gd, gr, etc.)
-		{ "gd", function()
-			Snacks.picker.lsp_definitions()
-		end, desc = "Jump to Definition" },
-		{ "gr", function()
-			Snacks.picker.lsp_references()
-		end, desc = "Show References" },
-		{ "gi", function()
-			Snacks.picker.lsp_implementations()
-		end, desc = "Jump to Implementation" },
+		{
+			"gd",
+			function()
+				Snacks.picker.lsp_definitions()
+			end,
+			desc = "Jump to Definition",
+		},
+		{
+			"gr",
+			function()
+				Snacks.picker.lsp_references()
+			end,
+			desc = "Show References",
+		},
+		{
+			"gi",
+			function()
+				Snacks.picker.lsp_implementations()
+			end,
+			desc = "Jump to Implementation",
+		},
 		{ "K", vim.lsp.buf.hover, desc = "Show Documentation" },
-		{ "<leader>ca", function()
-			require("tiny-code-action").code_action()
-		end, desc = "Show Code Actions", mode = { "n", "v" } },
-		{ "<leader>cs", function()
-			Snacks.picker.lsp_symbols()
-		end, desc = "Show Document Symbols" },
-		{ "<leader>cS", function()
-			Snacks.picker.lsp_workspace_symbols()
-		end, desc = "Show Workspace Symbols" },
+		{
+			"<leader>ca",
+			function()
+				require("tiny-code-action").code_action()
+			end,
+			desc = "Show Code Actions",
+			mode = { "n", "v" },
+		},
+		{
+			"<leader>cs",
+			function()
+				Snacks.picker.lsp_symbols()
+			end,
+			desc = "Show Document Symbols",
+		},
+		{
+			"<leader>cS",
+			function()
+				Snacks.picker.lsp_workspace_symbols()
+			end,
+			desc = "Show Workspace Symbols",
+		},
 		{ "<leader>crn", vim.lsp.buf.rename, desc = "Rename Symbol" },
 	},
 
 	code = {
 		name = "+Code",
 		prefix = "<leader>c",
-		{ "<leader>cf", function()
-			require("conform").format({ async = true, lsp_format = "fallback" })
-		end, desc = "Format Code", mode = { "n", "v" } },
+		{
+			"<leader>cf",
+			function()
+				require("conform").format({ async = true, lsp_format = "fallback" })
+			end,
+			desc = "Format Code",
+			mode = { "n", "v" },
+		},
 	},
 
 	diagnostics = {
@@ -48,12 +78,20 @@ M.definitions = {
 	buffer = {
 		name = "+Buffer",
 		prefix = "<leader>b",
-		{ "<leader>bdc", function()
-			Snacks.bufdelete()
-		end, desc = "Delete Current Buffer" },
-		{ "<leader>bda", function()
-			Snacks.bufdelete.all()
-		end, desc = "Delete All Buffers" },
+		{
+			"<leader>bdc",
+			function()
+				Snacks.bufdelete()
+			end,
+			desc = "Delete Current Buffer",
+		},
+		{
+			"<leader>bda",
+			function()
+				Snacks.bufdelete.all()
+			end,
+			desc = "Delete All Buffers",
+		},
 		{ "<leader>bp", "<Cmd>BufferLineTogglePin<CR>", desc = "Toggle Pin Buffer" },
 		{ "<leader>bdP", "<Cmd>BufferLineGroupClose ungrouped<CR>", desc = "Delete Non-Pinned Buffers" },
 		{ "<leader>bdr", "<Cmd>BufferLineCloseRight<CR>", desc = "Delete Buffers to Right" },
@@ -69,30 +107,70 @@ M.definitions = {
 	find = {
 		name = "+Find",
 		prefix = "<leader>f",
-		{ "<leader><space>", function()
-			Snacks.picker.smart()
-		end, desc = "Smart Find Files" },
-		{ "<leader>:", function()
-			Snacks.picker.command_history()
-		end, desc = "Command History" },
-		{ "<leader>e", function()
-			Snacks.explorer()
-		end, desc = "Toggle File Explorer" },
-		{ "<leader>ff", function()
-			Snacks.picker.files()
-		end, desc = "Find Files" },
-		{ "<leader>fb", function()
-			Snacks.picker.buffers()
-		end, desc = "Find Buffers" },
-		{ "<leader>fg", function()
-			Snacks.picker.grep()
-		end, desc = "Grep in Files" },
-		{ "<leader>fr", function()
-			Snacks.picker.recent()
-		end, desc = "Find Recent Files" },
-		{ "<leader>fc", function()
-			Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
-		end, desc = "Find Config Files" },
+		{
+			"<leader><space>",
+			function()
+				Snacks.picker.smart()
+			end,
+			desc = "Smart Find Files",
+		},
+		{
+			"<leader>:",
+			function()
+				Snacks.picker.command_history()
+			end,
+			desc = "Command History",
+		},
+		{
+			"<leader>e",
+			function()
+				Snacks.explorer()
+			end,
+			desc = "Explorer (Project Root)",
+		},
+		{
+			"<leader>E",
+			function()
+				local buf_path = vim.fn.expand("%:p:h")
+				Snacks.explorer({ cwd = buf_path })
+			end,
+			desc = "Explorer (Buffer Dir)",
+		},
+		{
+			"<leader>ff",
+			function()
+				Snacks.picker.files()
+			end,
+			desc = "Find Files",
+		},
+		{
+			"<leader>fb",
+			function()
+				Snacks.picker.buffers()
+			end,
+			desc = "Find Buffers",
+		},
+		{
+			"<leader>fg",
+			function()
+				Snacks.picker.grep()
+			end,
+			desc = "Grep in Files",
+		},
+		{
+			"<leader>fr",
+			function()
+				Snacks.picker.recent()
+			end,
+			desc = "Find Recent Files",
+		},
+		{
+			"<leader>fc",
+			function()
+				Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
+			end,
+			desc = "Find Config Files",
+		},
 	},
 
 	window = {
@@ -115,9 +193,14 @@ M.definitions = {
 	},
 
 	terminal = {
-		{ "<C-_>", function()
-			Snacks.terminal()
-		end, desc = "Toggle Terminal", mode = { "n", "t" } },
+		{
+			"<C-_>",
+			function()
+				Snacks.terminal()
+			end,
+			desc = "Toggle Terminal",
+			mode = { "n", "t" },
+		},
 	},
 
 	comment = {
@@ -126,9 +209,13 @@ M.definitions = {
 	},
 
 	which_key = {
-		{ "<leader>?", function()
-			require("which-key").show({ global = false })
-		end, desc = "Buffer Local Keymaps (which-key)" },
+		{
+			"<leader>?",
+			function()
+				require("which-key").show({ global = false })
+			end,
+			desc = "Buffer Local Keymaps (which-key)",
+		},
 	},
 }
 
@@ -176,7 +263,7 @@ end
 -- Generate Which-key spec automatically
 function M.get_which_key_spec()
 	local spec = {}
-	for group_name, group in pairs(M.definitions) do
+	for _, group in pairs(M.definitions) do
 		if group.prefix and group.name then
 			table.insert(spec, {
 				group.prefix,
