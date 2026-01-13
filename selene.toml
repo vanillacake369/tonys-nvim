@@ -1,0 +1,8 @@
+std = "vim"
+
+[rules]
+# Disable rules that are too strict for Neovim config
+mixed_table = "allow"
+global_usage = "allow"
+unscoped_variables = "allow"
+undefined_variable = "allow"
