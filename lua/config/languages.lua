@@ -91,21 +91,59 @@ M.languages = {
 		linters = { "biomejs" },
 		formatters = { "biome" },
 	},
+	-- nix = {
+	-- 	lsp_server = "nixd",
+	-- 	lsp_opts = {
+	-- 		cmd = { "nixd" },
+	-- 		settings = {
+	-- 			nixd = {
+	-- 				nixpkgs = {
+	-- 					expr = "import <nixpkgs> { }",
+	-- 				},
+	-- 				options = {
+	-- 					statix = {
+	-- 						enable = true,
+	-- 					},
+	-- 				},
+	-- 				formatting = {
+	-- 					command = { "alejandra" },
+	-- 				},
+	-- 			},
+	-- 		},
+	-- 	},
+	-- 	treesitter = {
+	-- 		"nix",
+	-- 	},
+	-- 	linters = { "statix", "deadnix" },
+	-- 	formatters = { "alejandra" },
+	-- },
 	nix = {
 		lsp_server = "nixd",
 		lsp_opts = {
 			cmd = { "nixd" },
 			settings = {
 				nixd = {
+					nixpkgs = {
+						expr = "import <nixpkgs> { }",
+					},
+					-- 옵션 검사 (NixOS/Home Manager 옵션 자동완성용)
+					options = {
+						nixos = {
+							expr = "(attributes of (import <nixpkgs> {}).lib).nixosSystem { modules = []; }",
+						},
+						statix = {
+							enable = true,
+						},
+					},
 					formatting = {
 						command = { "alejandra" },
 					},
 				},
 			},
 		},
-		treesitter = {
-			"nix",
-		},
+		treesitter = { "nix" },
+		-- nixd가 statix를 포함하므로 linters에서 statix를 빼도 되지만,
+		-- deadnix(사용하지 않는 코드 감지)는 nixd가 완벽하지 않으므로 유지하는 것이 좋습니다.
 		linters = { "statix", "deadnix" },
 		formatters = { "alejandra" },
 	},
