@@ -1,0 +1,17 @@
+# Neovim API globals
+vim = {
+    any = true,
+    other_fields = true,
+}
+
+# Neovim specific globals
+Snacks = {
+    any = true,
+    other_fields = true,
+}
+
+# Common Lua globals in Neovim
+_G = {
+    any = true,
+    other_fields = true,
+}
