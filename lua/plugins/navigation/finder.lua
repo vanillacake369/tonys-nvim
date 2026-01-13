@@ -2,25 +2,54 @@ return {
 	"folke/snacks.nvim",
 	priority = 1000,
 	lazy = false,
-	---@type snacks.Config
 	opts = {
 		bigfile = { enabled = true },
 		dashboard = { enabled = true },
 		explorer = { enabled = true },
 		indent = { enabled = true },
 		input = { enabled = true },
-		notifier = {
-			enabled = true,
-			timeout = 3000,
-		},
+		notifier = { enabled = true, timeout = 3000 },
 		terminal = { enabled = true },
 		picker = {
-			hidden = true,
-			ignored = true,
+			enabled = true,
+			-- ui_select = true,
+			layouts = {
+				telescope = {
+					layout = {
+						box = "horizontal",
+						width = 0.95,
+						height = 0.85,
+						{
+							box = "vertical",
+							border = "rounded",
+							title = " 📂 Project Tree ",
+							{ win = "input", height = 1, border = "bottom" },
+							{ win = "list", border = "none" },
+							width = 0.35,
+						},
+						{
+							win = "preview",
+							title = " 👁️ Preview ",
+							border = "rounded",
+							width = 0.65,
+						},
+					},
+				},
+			},
+			-- picker 전체에 적용할 기본 레이아웃
+			layout = { preset = "telescope", focus = "list" },
 			sources = {
 				explorer = {
 					hidden = true,
 					ignored = true,
+				},
+				recent = {
+					cwd_only = false,
+					layout = { reverse = false },
+				},
+				buffers = {
+					cwd_only = false,
+					layout = { reverse = false },
 				},
 			},
 		},
@@ -30,6 +59,7 @@ return {
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
 	},
+
 	keys = function()
 		local keymaps = require("config.keymaps")
 		local find_keys = keymaps.get_keys("find")
@@ -40,7 +70,7 @@ return {
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "VeryLazy",
 			callback = function()
-				-- 디버깅용 전역 함수 설정 (지연 로딩)
+				-- 디버깅용 전역 함수 설정
 				_G.dd = function(...)
 					Snacks.debug.inspect(...)
 				end
@@ -48,7 +78,6 @@ return {
 					Snacks.debug.backtrace()
 				end
 
-				-- `:=` 명령어를 위해 print 함수를 snacks으로 대체
 				if vim.fn.has("nvim-0.11") == 1 then
 					vim._print = function(_, ...)
 						dd(...)
@@ -57,7 +86,7 @@ return {
 					vim.print = _G.dd
 				end
 
-				-- UI Toggle group
+				-- UI Toggles
 				Snacks.toggle.option("spell", { name = "[UI] Spelling" }):map("<leader>us")
 				Snacks.toggle.option("wrap", { name = "[UI] Wrap" }):map("<leader>uw")
 				Snacks.toggle.option("relativenumber", { name = "[UI] Relative Number" }):map("<leader>uL")
