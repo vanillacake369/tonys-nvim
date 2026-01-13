@@ -5,6 +5,13 @@ M.definitions = {
 		name = "+LSP",
 		prefix = nil, -- no prefix (gd, gr, etc.)
 		{
+			"gD",
+			function()
+				Snacks.picker.lsp_declarations()
+			end,
+			desc = "Jump to Declartions",
+		},
+		{
 			"gd",
 			function()
 				Snacks.picker.lsp_definitions()

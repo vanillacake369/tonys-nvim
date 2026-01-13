@@ -91,32 +91,6 @@ M.languages = {
 		linters = { "biomejs" },
 		formatters = { "biome" },
 	},
-	-- nix = {
-	-- 	lsp_server = "nixd",
-	-- 	lsp_opts = {
-	-- 		cmd = { "nixd" },
-	-- 		settings = {
-	-- 			nixd = {
-	-- 				nixpkgs = {
-	-- 					expr = "import <nixpkgs> { }",
-	-- 				},
-	-- 				options = {
-	-- 					statix = {
-	-- 						enable = true,
-	-- 					},
-	-- 				},
-	-- 				formatting = {
-	-- 					command = { "alejandra" },
-	-- 				},
-	-- 			},
-	-- 		},
-	-- 	},
-	-- 	treesitter = {
-	-- 		"nix",
-	-- 	},
-	-- 	linters = { "statix", "deadnix" },
-	-- 	formatters = { "alejandra" },
-	-- },
 	nix = {
 		lsp_server = "nixd",
 		lsp_opts = {
@@ -124,16 +98,21 @@ M.languages = {
 			settings = {
 				nixd = {
 					nixpkgs = {
-						expr = "import <nixpkgs> { }",
+						expr = "import (builtins.getFlake(toString ./.)).inputs.nixpkgs { }",
 					},
-					-- 옵션 검사 (NixOS/Home Manager 옵션 자동완성용)
 					options = {
 						nixos = {
-							expr = "(attributes of (import <nixpkgs> {}).lib).nixosSystem { modules = []; }",
+							expr = '(builtins.getFlake(toString ./.)).nixosConfigurations."tony".options',
 						},
-						statix = {
-							enable = true,
+						home_manager = {
+							expr = '(builtins.getFlake(toString ./.)).homeConfigurations."hm-aarch64-darwin".options',
 						},
+						darwin = {
+							expr = '(builtins.getFlake(toString ./.)).darwinConfigurations."tony-aarch64-darwin".options',
+						},
+					},
+					diagnostic = {
+						suppress = { "shadowing" },
 					},
 					formatting = {
 						command = { "alejandra" },
@@ -142,8 +121,6 @@ M.languages = {
 			},
 		},
 		treesitter = { "nix" },
-		-- nixd가 statix를 포함하므로 linters에서 statix를 빼도 되지만,
-		-- deadnix(사용하지 않는 코드 감지)는 nixd가 완벽하지 않으므로 유지하는 것이 좋습니다.
 		linters = { "statix", "deadnix" },
 		formatters = { "alejandra" },
 	},
@@ -180,6 +157,17 @@ M.languages = {
 		},
 		linters = { "shellcheck" },
 		formatters = { "shfmt" },
+	},
+	just = {
+		lsp_server = "just_lsp",
+		lsp_opts = {
+			cmd = { "just-lsp" },
+			filetypes = { "just" },
+		},
+		treesitter = {
+			"just",
+		},
+		formatters = { "just" },
 	},
 	html = {
 		lsp_server = "html",

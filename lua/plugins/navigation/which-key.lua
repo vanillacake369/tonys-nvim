@@ -14,14 +14,12 @@ return {
 		}
 	end,
 	keys = function()
-		return require("config.keymaps").get_keys("which_key")
+		local keymaps = require("config.keymaps")
+		local keys = keymaps.get_keys("which_key")
+		return keys
 	end,
 	config = function(_, opts)
 		local wk = require("which-key")
 		wk.setup(opts)
-		-- local material_blue = "#26C6DA"
-		-- local material_green = "#66BB6A"
-		-- vim.api.nvim_set_hl(0, "WhichKeyBorder", { fg = material_green })
-		-- vim.api.nvim_set_hl(0, "WhichKeyTitle", { fg = material_green, bold = true })
 	end,
 }

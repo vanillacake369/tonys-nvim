@@ -65,20 +65,34 @@ return {
 				end,
 			})
 
+			-- LSP 성능 향상을 위한 공통 Capabilities 설정
+			local capabilities = vim.lsp.protocol.make_client_capabilities()
+			if package.loaded["blink.cmp"] then
+				capabilities = require("blink.cmp").get_lsp_capabilities(capabilities)
+			end
+
 			-- 각 서버 설정 및 활성화
 			for server, config in pairs(servers) do
+				-- 파일 변경 감시를 제한하여 메모리 앰플리케이션 방지
+				local final_config = vim.tbl_deep_extend("force", {
+					capabilities = capabilities,
+					flags = {
+						debounce_text_changes = 150, -- 텍스트 변경 시 지연 시간 설정
+						allow_incremental_sync = true, -- 증분 동기화 활성화
+					},
+				}, config)
+
 				local cmd
-				if config.cmd and type(config.cmd) == "table" then
-					cmd = config.cmd[1]
-				elseif config.cmd and type(config.cmd) == "string" then
-					cmd = config.cmd
+				if final_config.cmd and type(final_config.cmd) == "table" then
+					cmd = final_config.cmd[1]
+				elseif final_config.cmd and type(final_config.cmd) == "string" then
+					cmd = final_config.cmd
 				else
 					cmd = server
 				end
 
 				if vim.fn.executable(cmd) == 1 then
-					-- Use new vim.lsp.config API (Nvim 0.11+)
-					vim.lsp.config(server, config)
+					vim.lsp.config(server, final_config)
 					vim.lsp.enable(server)
 				else
 					vim.notify(string.format("LSP '%s' not found. Install via nix.", cmd), vim.log.levels.ERROR)
