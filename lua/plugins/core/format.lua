@@ -6,13 +6,7 @@ return {
 		{
 			"<leader>cf",
 			function()
-				local conform = require("conform")
-				-- Visual 모드라면 선택 영역을, 아니라면 전체 파일을 포맷팅
-				conform.format({
-					async = true,
-					lsp_format = "fallback",
-					range = true,
-				})
+				require("conform").format({ async = true, lsp_format = "fallback" })
 			end,
 			mode = { "n", "v" },
 			desc = "Format file or range",
