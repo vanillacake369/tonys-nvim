@@ -12,6 +12,7 @@ return {
 			"onsails/lspkind.nvim",
 			"ray-x/cmp-treesitter",
 			"L3MON4D3/LuaSnip",
+			"folke/lazydev.nvim",
 		},
 		event = "InsertEnter",
 		config = function()
@@ -72,6 +73,7 @@ return {
 					end, { "i", "s" }),
 				}),
 				sources = cmp.config.sources({
+					{ name = "lazydev", group_index = 0 }, -- set group index to 0 to skip loading LuaLS completions
 					{ name = "nvim_lsp" },
 					{ name = "luasnip" },
 					{ name = "buffer" },
