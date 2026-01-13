@@ -217,6 +217,22 @@ M.definitions = {
 			desc = "Buffer Local Keymaps (which-key)",
 		},
 	},
+
+	move = {
+		name = "+Move Lines",
+		{
+			"J",
+			":m '>+1<CR>gv=gv",
+			desc = "Move Selection Down",
+			mode = "v",
+		},
+		{
+			"K",
+			":m '<-2<CR>gv=gv",
+			desc = "Move Selection Up",
+			mode = "v",
+		},
+	},
 }
 
 -- Convert to Lazy.nvim keys format
