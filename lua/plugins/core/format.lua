@@ -2,16 +2,9 @@ return {
 	"stevearc/conform.nvim",
 	event = { "BufWritePre" },
 	cmd = "ConformInfo",
-	keys = {
-		{
-			"<leader>cf",
-			function()
-				require("conform").format({ async = true, lsp_format = "fallback" })
-			end,
-			mode = { "n", "v" },
-			desc = "Format file or range",
-		},
-	},
+	keys = function()
+		return require("config.keymaps").get_keys("code")
+	end,
 	opts = function()
 		local lang = require("config.languages")
 

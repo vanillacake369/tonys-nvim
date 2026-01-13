@@ -2,9 +2,9 @@ return {
     {
         "junegunn/vim-easy-align",
         event = "VeryLazy",
-        keys = {
-            { "<leader>a", "<Plug>(EasyAlign)", mode = { "n", "x" }, desc = "[Align] Easy Align" },
-        },
+        keys = function()
+            return require("config.keymaps").get_keys("align")
+        end,
         config = function()
         end
     },

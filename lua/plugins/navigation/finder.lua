@@ -30,75 +30,12 @@ return {
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
 	},
-	keys = {
-		-- 주요 Picker 및 탐색기
-		{
-			"<leader><space>",
-			function()
-				Snacks.picker.smart()
-			end,
-			desc = "Smart Find Files",
-		},
-		{
-			"<leader>:",
-			function()
-				Snacks.picker.command_history()
-			end,
-			desc = "Command History",
-		},
-		{
-			"<leader>e",
-			function()
-				Snacks.explorer()
-			end,
-			desc = "File Explorer",
-		},
-		-- Find group
-		{
-			"<leader>fb",
-			function()
-				Snacks.picker.buffers()
-			end,
-			desc = "[Find] Buffers",
-		},
-		{
-			"<leader>fc",
-			function()
-				Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
-			end,
-			desc = "[Find] Config File",
-		},
-		{
-			"<leader>ff",
-			function()
-				Snacks.picker.files()
-			end,
-			desc = "[Find] Files",
-		},
-		{
-			"<leader>fg",
-			function()
-				Snacks.picker.grep()
-			end,
-			desc = "[Find] Grep",
-		},
-		{
-			"<leader>fr",
-			function()
-				Snacks.picker.recent()
-			end,
-			desc = "[Find] Recent",
-		},
-		-- Terminal
-		{
-			"<C-_>",
-			function()
-				Snacks.terminal()
-			end,
-			desc = "Terminal (Root Dir)",
-			mode = { "n", "t" },
-		},
-	},
+	keys = function()
+		local keymaps = require("config.keymaps")
+		local find_keys = keymaps.get_keys("find")
+		local terminal_keys = keymaps.get_keys("terminal")
+		return vim.list_extend(find_keys, terminal_keys)
+	end,
 	init = function()
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "VeryLazy",
