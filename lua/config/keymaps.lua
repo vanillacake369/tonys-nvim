@@ -1,5 +1,9 @@
 local M = {}
 
+local function get_buf_path()
+	return vim.fn.expand("%:p:h")
+end
+
 M.definitions = {
 	lsp = {
 		name = "+LSP",
@@ -71,6 +75,27 @@ M.definitions = {
 		},
 	},
 
+	search_replace = {
+		name = "+Search & Replace",
+		prefix = "<leader>cr",
+		{
+			"<leader>cr",
+			'<cmd>lua require("spectre").open_visual({select_word=true})<CR>',
+			desc = "Search current word",
+		},
+		{
+			"<leader>cr",
+			'<esc><cmd>lua require("spectre").open_visual()<CR>',
+			desc = "Search current word",
+			mode = "v",
+		},
+		{
+			"<leader>crf",
+			'<cmd>lua require("spectre").open_file_search({select_word=true})<CR>',
+			desc = "Search on current file",
+		},
+	},
+
 	diagnostics = {
 		name = "+Diagnostics",
 		prefix = "<leader>d",
@@ -138,15 +163,14 @@ M.definitions = {
 		{
 			"<leader>E",
 			function()
-				local buf_path = vim.fn.expand("%:p:h")
-				Snacks.explorer({ cwd = buf_path })
+				Snacks.explorer({ cwd = get_buf_path() })
 			end,
 			desc = "Explorer (Buffer Dir)",
 		},
 		{
 			"<leader>ff",
 			function()
-				Snacks.picker.files()
+				Snacks.picker.files({ cwd = get_buf_path() })
 			end,
 			desc = "Find Files",
 		},
@@ -160,7 +184,7 @@ M.definitions = {
 		{
 			"<leader>fg",
 			function()
-				Snacks.picker.grep()
+				Snacks.picker.grep({ cwd = get_buf_path() })
 			end,
 			desc = "Grep in Files",
 		},
@@ -178,6 +202,13 @@ M.definitions = {
 			end,
 			desc = "Find Config Files",
 		},
+		{
+			"<leader>fp",
+			function()
+				Snacks.picker.projects({ cwd = get_buf_path() })
+			end,
+			desc = "Find Project",
+		},
 	},
 
 	window = {
@@ -185,11 +216,15 @@ M.definitions = {
 		prefix = "<leader>w",
 		{ "<leader>w-", "<C-w>s", desc = "Split Below" },
 		{ "<leader>w|", "<C-w>v", desc = "Split Right" },
-		{ "<leader>wq", "<C-w>q", desc = "Close Window" },
+		{ "<leader>wc", "<C-w>q", desc = "Close Window" },
 		{ "<leader>wh", "<C-w>h", desc = "Go to Left Window" },
 		{ "<leader>wj", "<C-w>j", desc = "Go to Down Window" },
 		{ "<leader>wk", "<C-w>k", desc = "Go to Up Window" },
 		{ "<leader>wl", "<C-w>l", desc = "Go to Right Window" },
+		{ "<leader>wH", "<C-w>H", desc = "Move Window to Left" },
+		{ "<leader>wJ", "<C-w>J", desc = "Move Window to Down" },
+		{ "<leader>wK", "<C-w>K", desc = "Move Window to Up" },
+		{ "<leader>wL", "<C-w>L", desc = "Move Window to Right" },
 		{ "<leader>w=", "<C-w>=", desc = "Equal Size Windows" },
 	},
 
