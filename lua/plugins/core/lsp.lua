@@ -65,22 +65,33 @@ return {
 				end,
 			})
 
+			-- nixd 프로세스 정리
+			vim.api.nvim_create_autocmd("VimLeavePre", {
+				group = vim.api.nvim_create_augroup("CleanupNixd", { clear = true }),
+				callback = function()
+					-- nixd와 그 자식 프로세스들을 모두 종료
+					os.execute("pkill -9 nixd")
+					os.execute("pkill -9 nixd-attrset-eval")
+				end,
+			})
+
 			-- LSP 성능 향상을 위한 공통 Capabilities 설정
-			local capabilities = vim.lsp.protocol.make_client_capabilities()
+			local base_capabilities = vim.lsp.protocol.make_client_capabilities()
 			if package.loaded["blink.cmp"] then
-				capabilities = require("blink.cmp").get_lsp_capabilities(capabilities)
+				base_capabilities = require("blink.cmp").get_lsp_capabilities(base_capabilities)
 			end
 
 			-- 각 서버 설정 및 활성화
 			for server, config in pairs(servers) do
 				-- 파일 변경 감시를 제한하여 메모리 앰플리케이션 방지
 				local final_config = vim.tbl_deep_extend("force", {
-					capabilities = capabilities,
+					capabilities = base_capabilities,
 					flags = {
 						debounce_text_changes = 150, -- 텍스트 변경 시 지연 시간 설정
 						allow_incremental_sync = true, -- 증분 동기화 활성화
 					},
 				}, config)
+
 
 				local cmd
 				if final_config.cmd and type(final_config.cmd) == "table" then

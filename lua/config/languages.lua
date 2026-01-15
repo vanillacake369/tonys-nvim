@@ -97,20 +97,24 @@ M.languages = {
 			cmd = { "nixd" },
 			settings = {
 				nixd = {
+					-- This expression will be interpreted as "nixpkgs" toplevel
+					-- Nixd provides package, lib completion/information from it.
 					nixpkgs = {
 						expr = "import (builtins.getFlake(toString ./.)).inputs.nixpkgs { }",
 					},
-					options = {
-						nixos = {
-							expr = '(builtins.getFlake(toString ./.)).nixosConfigurations."tony".options',
-						},
-						home_manager = {
-							expr = '(builtins.getFlake(toString ./.)).homeConfigurations."hm-aarch64-darwin".options',
-						},
-						darwin = {
-							expr = '(builtins.getFlake(toString ./.)).darwinConfigurations."tony-aarch64-darwin".options',
-						},
-					},
+					-- Tell the language server your desired option set, for completion
+					-- This is lazily evaluated.
+					-- options = {
+					-- 	nixos = {
+					-- 		expr = '(builtins.getFlake(toString ./.)).nixosConfigurations."tony".options',
+					-- 	},
+					-- 	home_manager = {
+					-- 		expr = '(builtins.getFlake(toString ./.)).homeConfigurations."hm-aarch64-darwin".options',
+					-- 	},
+					-- 	darwin = {
+					-- 		expr = '(builtins.getFlake(toString ./.)).darwinConfigurations."tony-aarch64-darwin".options',
+					-- 	},
+					-- },
 					diagnostic = {
 						suppress = { "shadowing" },
 					},
@@ -163,6 +167,10 @@ M.languages = {
 		lsp_opts = {
 			cmd = { "just-lsp" },
 			filetypes = { "just" },
+			offset_encoding = "utf-8",
+			capabilities = {
+				offsetEncoding = { "utf-8" },
+			},
 		},
 		treesitter = {
 			"just",
