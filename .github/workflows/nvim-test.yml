@@ -1,0 +1,66 @@
+name: Neovim Integration Test
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - '**.lua'
+      - 'init.lua'
+      - '.github/workflows/nvim-test.yml'
+  merge_group:
+
+jobs:
+  test-config:
+    name: Test Config Load
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+
+      - name: Test Config Loading
+        run: |
+          echo "Testing Neovim configuration loading..."
+          nvim --headless --noplugin -u init.lua \
+            -c "lua print('Config loaded successfully')" \
+            -c "lua require('lazy').setup()" \
+            -c "qa!"
+
+      - name: Check for Lua Syntax Errors
+        run: |
+          echo "Checking for Lua syntax errors..."
+          find lua -name "*.lua" -type f | while read -r file; do
+            echo "Checking: $file"
+            nvim --headless -u NONE \
+              -c "lua loadfile('$file')()" \
+              -c "qa!" 2>&1 | tee -a syntax-check.log || true
+          done
+
+          if grep -i "error" syntax-check.log; then
+            echo "❌ Lua syntax errors found!"
+            cat syntax-check.log
+            exit 1
+          else
+            echo "✅ No syntax errors found"
+          fi
+
+      - name: Test Plugin Manager
+        run: |
+          echo "Testing lazy.nvim plugin manager..."
+          nvim --headless -u init.lua \
+            -c "lua vim.notify('Lazy loading...', vim.log.levels.INFO)" \
+            -c "lua require('lazy').restore()" \
+            -c "qa!" 2>&1 | tee lazy-test.log
+
+          if grep -i "error" lazy-test.log; then
+            echo "❌ Plugin manager errors found!"
+            exit 1
+          else
+            echo "✅ Plugin manager working"
+          fi
