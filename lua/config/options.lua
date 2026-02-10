@@ -5,10 +5,12 @@ vim.opt.showmode = false
 
 -- Tabs and indentation
 vim.opt.tabstop = 4
-vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
 vim.opt.autoindent = true
+
+-- Allow mouse
+vim.opt.mouse = "a"
 
 -- Wrap
 vim.opt.wrap = false

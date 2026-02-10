@@ -2,20 +2,3 @@
 # https://kampfkarren.github.io/selene/
 
 std = "vim"
-
-[rules]
-# Neovim-specific rules - balanced approach
-undefined_variable = "allow"
-unused_variable = "warn"
-global_usage = "allow"
-unscoped_variables = "allow"
-mixed_table = "allow"
-incorrect_standard_library_use = "warn"
-unbalanced_assignments = "warn"
-unused_function = "warn"
-shadowing = "allow"
-parenthese_conditions = "allow"
-empty_if = "warn"
-ifs_same_cond = "warn"
-almost_swapped = "warn"
-deprecated = "warn"
