@@ -1,0 +1,18 @@
+# Build results
+result
+result-*
+
+# Secrets and keys
+*.key
+*.pem
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
