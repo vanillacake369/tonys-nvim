@@ -21,26 +21,9 @@ return {
 		},
 	},
 	{
-		"saghen/blink.cmp",
-		optional = true,
-		opts = {
-			sources = {
-				-- add lazydev to your completion providers
-				default = { "lazydev", "lsp", "path", "snippets", "buffer" },
-				providers = {
-					lazydev = {
-						name = "LazyDev",
-						module = "lazydev.integrations.blink",
-						-- make lazydev completions top priority (see `:h blink.cmp`)
-						score_offset = 100,
-					},
-				},
-			},
-		},
-	},
-	{
 		"neovim/nvim-lspconfig",
 		event = { "BufReadPre", "BufNewFile" },
+		dependencies = { "saghen/blink.cmp" },
 		config = function()
 			local lang = require("config.languages")
 			local servers = lang.collect_lsp_servers()
@@ -75,11 +58,9 @@ return {
 				end,
 			})
 
-			-- LSP 성능 향상을 위한 공통 Capabilities 설정
+			-- LSP Capabilities 설정 (blink.cmp 사용)
 			local base_capabilities = vim.lsp.protocol.make_client_capabilities()
-			if package.loaded["blink.cmp"] then
-				base_capabilities = require("blink.cmp").get_lsp_capabilities(base_capabilities)
-			end
+			base_capabilities = require("blink.cmp").get_lsp_capabilities(base_capabilities)
 
 			-- 각 서버 설정 및 활성화
 			for server, config in pairs(servers) do

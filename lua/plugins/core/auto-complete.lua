@@ -1,87 +1,109 @@
+-- Blink.cmp - Performant completion plugin
+-- IDE-like completion with snippets, ghost text, and signature help
+
 return {
 	{
-		"hrsh7th/nvim-cmp",
-		lazy = false,
-		priority = 100,
+		"saghen/blink.cmp",
+		version = "1.*",
+		event = "InsertEnter",
 		dependencies = {
-			"hrsh7th/cmp-nvim-lsp",
-			"hrsh7th/cmp-buffer",
-			"hrsh7th/cmp-path",
-			"hrsh7th/cmp-nvim-lsp",
-			"hrsh7th/cmp-nvim-lsp-signature-help",
-			"onsails/lspkind.nvim",
-			"ray-x/cmp-treesitter",
-			"L3MON4D3/LuaSnip",
+			"rafamadriz/friendly-snippets",
 			"folke/lazydev.nvim",
 		},
-		event = "InsertEnter",
-		config = function()
-			local cmp = require("cmp")
-			local luasnip = require("luasnip")
-			cmp.setup({
-				snippet = {
-					expand = function(args)
-						luasnip.lsp_expand(args.body)
-					end,
-				},
-				formatting = {
-					format = require("lspkind").cmp_format({
-						mode = "symbol_text",
-						menu = {
-							nvim_lsp = "[LSP]",
-							buffer = "[Buffer]",
-							latex_symbols = "[Latex]",
-							luasnip = "[LuaSnip]",
-						},
-					}),
-				},
-				window = {
-					completion = cmp.config.window.bordered(),
-					documentation = cmp.config.window.bordered(),
-				},
-				view = {
-					entries = {
-						name = "custom",
-						selection_order = "near_cursor",
+
+		---@module 'blink.cmp'
+		---@type blink.cmp.Config
+		opts = {
+			-- Keymap: Ctrl+y to accept, Enter for newline
+			keymap = {
+				preset = "none",
+				["<C-y>"] = { "accept", "fallback" },
+				["<CR>"] = { "fallback" },
+				["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
+				["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
+				["<C-Space>"] = { "accept", "show", "fallback" },
+				["<C-e>"] = { "hide", "fallback" },
+				["<C-d>"] = { "scroll_documentation_down", "fallback" },
+				["<C-u>"] = { "scroll_documentation_up", "fallback" },
+				["<C-k>"] = { "show_signature", "hide_signature", "fallback" },
+			},
+
+			appearance = {
+				nerd_font_variant = "mono",
+			},
+
+			-- Completion settings
+			completion = {
+				-- Auto-show documentation
+				documentation = {
+					auto_show = true,
+					auto_show_delay_ms = 200,
+					window = {
+						border = "rounded",
 					},
 				},
-				mapping = cmp.mapping.preset.insert({
-					["<C-d>"] = cmp.mapping.scroll_docs(-4),
-					["<C-u>"] = cmp.mapping.scroll_docs(4),
-					["<C-Space>"] = cmp.mapping.complete(),
-					["<CR>"] = cmp.mapping.confirm({
-						behavior = cmp.ConfirmBehavior.Replace,
-						select = true,
-					}),
-					["<Tab>"] = cmp.mapping(function(fallback)
-						if cmp.visible() then
-							cmp.select_next_item()
-						elseif luasnip.expand_or_jumpable() then
-							luasnip.expand_or_jump()
-						else
-							fallback()
-						end
-					end, { "i", "s" }),
-					["<S-Tab>"] = cmp.mapping(function(fallback)
-						if cmp.visible() then
-							cmp.select_prev_item()
-						elseif luasnip.jumpable(-1) then
-							luasnip.jump(-1)
-						else
-							fallback()
-						end
-					end, { "i", "s" }),
-				}),
-				sources = cmp.config.sources({
-					{ name = "lazydev", group_index = 0 }, -- set group index to 0 to skip loading LuaLS completions
-					{ name = "nvim_lsp" },
-					{ name = "luasnip" },
-					{ name = "buffer" },
-					{ name = "calc" },
-					{ name = "path" },
-					{ name = "treesitter" },
-				}),
-			})
-		end,
+				-- Ghost text preview (IDE-like inline preview)
+				ghost_text = {
+					enabled = true,
+					show_with_selection = true,
+					show_without_selection = false,
+					show_with_menu = true,
+					show_without_menu = true,
+				},
+				-- Completion menu
+				menu = {
+					border = "rounded",
+					draw = {
+						columns = {
+							{ "kind_icon" },
+							{ "label", "label_description", gap = 1 },
+							{ "source_name" },
+						},
+					},
+				},
+				-- Accept behavior
+				accept = {
+					auto_brackets = { enabled = true },
+				},
+			},
+
+			-- Signature help (shows function parameters)
+			signature = {
+				enabled = true,
+				trigger = {
+					enabled = true,
+					show_on_trigger_character = true,
+					show_on_insert_on_trigger_character = true,
+				},
+				window = {
+					border = "rounded",
+					treesitter_highlighting = true,
+					show_documentation = true,
+				},
+			},
+
+			-- Snippet navigation (IDE-like variable jumping)
+			snippets = {
+				preset = "default",
+			},
+
+			-- Sources
+			sources = {
+				default = { "lazydev", "lsp", "path", "snippets", "buffer" },
+				providers = {
+					lazydev = {
+						name = "LazyDev",
+						module = "lazydev.integrations.blink",
+						score_offset = 100,
+					},
+				},
+			},
+
+			-- Fuzzy matching
+			fuzzy = {
+				implementation = "prefer_rust_with_warning",
+			},
+		},
+		opts_extend = { "sources.default" },
 	},
 }

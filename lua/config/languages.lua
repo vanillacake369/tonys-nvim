@@ -5,6 +5,7 @@ M.languages = {
 		lsp_server = "pylsp",
 		lsp_opts = {
 			cmd = { "pylsp" },
+			filetypes = { "python" },
 		},
 		treesitter = {
 			"python",
@@ -18,6 +19,7 @@ M.languages = {
 		lsp_server = "jdtls",
 		lsp_opts = {
 			cmd = { "jdtls" },
+			filetypes = { "java" },
 		},
 		treesitter = {
 			"java",
@@ -28,6 +30,7 @@ M.languages = {
 		lsp_server = "clangd",
 		lsp_opts = {
 			cmd = { "clangd" },
+			filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
 		},
 		treesitter = {
 			"c",
@@ -38,6 +41,7 @@ M.languages = {
 		lsp_server = "yamlls",
 		lsp_opts = {
 			cmd = { "yaml-language-server", "--stdio" },
+			filetypes = { "yaml", "yaml.docker-compose", "yaml.gitlab" },
 			settings = {
 				yaml = {
 					schemas = {
@@ -68,6 +72,14 @@ M.languages = {
 		lsp_server = "gopls",
 		lsp_opts = {
 			cmd = { "gopls" },
+			filetypes = { "go", "gomod", "gowork", "gotmpl" },
+			settings = {
+				gopls = {
+					usePlaceholders = true,
+					completeUnimported = true,
+					staticcheck = true,
+				},
+			},
 		},
 		treesitter = {
 			"go",
@@ -82,6 +94,7 @@ M.languages = {
 		lsp_server = "ts_ls",
 		lsp_opts = {
 			cmd = { "typescript-language-server", "--stdio" },
+			filetypes = { "javascript", "javascriptreact", "javascript.jsx", "typescript", "typescriptreact", "typescript.tsx" },
 		},
 		treesitter = {
 			"javascript",
@@ -95,6 +108,7 @@ M.languages = {
 		lsp_server = "nixd",
 		lsp_opts = {
 			cmd = { "nixd" },
+			filetypes = { "nix" },
 			settings = {
 				nixd = {
 					-- This expression will be interpreted as "nixpkgs" toplevel
@@ -132,6 +146,7 @@ M.languages = {
 		lsp_server = "lua_ls",
 		lsp_opts = {
 			cmd = { "lua-language-server" },
+			filetypes = { "lua" },
 		},
 		treesitter = {
 			"lua",
@@ -143,6 +158,7 @@ M.languages = {
 		lsp_server = "terraformls",
 		lsp_opts = {
 			cmd = { "terraform-ls", "serve" },
+			filetypes = { "terraform", "terraform-vars" },
 		},
 		treesitter = {
 			"terraform",
@@ -155,6 +171,7 @@ M.languages = {
 		lsp_server = "bashls",
 		lsp_opts = {
 			cmd = { "bash-language-server", "start" },
+			filetypes = { "sh", "bash" },
 		},
 		treesitter = {
 			"bash",
@@ -181,6 +198,7 @@ M.languages = {
 		lsp_server = "html",
 		lsp_opts = {
 			cmd = { "vscode-html-language-server", "--stdio" },
+			filetypes = { "html", "templ" },
 		},
 		treesitter = {
 			"html",
@@ -191,6 +209,7 @@ M.languages = {
 		lsp_server = "cssls",
 		lsp_opts = {
 			cmd = { "vscode-css-language-server", "--stdio" },
+			filetypes = { "css", "scss", "less" },
 		},
 		treesitter = {
 			"css",
@@ -201,6 +220,7 @@ M.languages = {
 		lsp_server = "jsonls",
 		lsp_opts = {
 			cmd = { "vscode-json-language-server", "--stdio" },
+			filetypes = { "json", "jsonc" },
 		},
 		treesitter = {
 			"json",
@@ -212,6 +232,7 @@ M.languages = {
 		lsp_server = "docker_compose_language_service",
 		lsp_opts = {
 			cmd = { "docker-compose-langserver", "--stdio" },
+			filetypes = { "yaml.docker-compose" },
 		},
 		treesitter = {
 			"dockerfile",
@@ -254,8 +275,8 @@ local function collect_config(key, is_list)
 					end
 				end
 			else
-				-- filetype별 매핑
-				local fts = config.filetypes or { lang_name }
+				-- filetype별 매핑: lsp_opts.filetypes 우선, 없으면 lang_name 사용
+				local fts = (config.lsp_opts and config.lsp_opts.filetypes) or { lang_name }
 				for _, ft in ipairs(fts) do
 					result[ft] = data
 				end

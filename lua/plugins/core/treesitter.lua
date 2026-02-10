@@ -1,17 +1,13 @@
 return {
 	"nvim-treesitter/nvim-treesitter",
 	lazy = false,
-	-- event = { "BufReadPost", "BufNewFile" },
 	build = ":TSUpdate",
 	config = function()
-		local lang = require("config.languages")
-		local configs = require("nvim-treesitter.configs")
-
-		configs.setup({
-			highlight = { enable = true },
-			indent = { enable = true },
-			autotag = { enable = true },
-			ensure_installed = lang.collect_treesitter_parsers(),
+		-- Enable treesitter highlighting for all filetypes
+		vim.api.nvim_create_autocmd("FileType", {
+			callback = function()
+				pcall(vim.treesitter.start)
+			end,
 		})
 	end,
 }
