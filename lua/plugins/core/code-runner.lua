@@ -243,7 +243,9 @@ return {
         "OverseerQuickAction",
         "OverseerRestartLast",
     },
-    keys = require("config.keymaps").get_keys("runner"),
+    keys = function()
+        return require("config.keymaps").get_keys("runner")
+    end,
     opts = {
         task_list = {
             direction = "bottom",

@@ -1,3 +1,12 @@
+-- Leader keys (must be set before any keymap or plugin)
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+-- Plugin-native keymaps (configured in their respective plugin files):
+-- Insert mode completion: lua/plugins/core/auto-complete.lua
+-- Copilot suggestions:    lua/plugins/core/copilot.lua
+-- UI toggles <leader>u*:  lua/plugins/navigation/finder.lua
+
 local M = {}
 
 local function get_buf_path()
@@ -39,27 +48,22 @@ M.definitions = {
         {
             "K",
             function()
-                -- 현재 버퍼에 연결된 LSP 클라이언트에서 인코딩 정보 가져오기 (경고 해결)
                 local clients = vim.lsp.get_clients({ bufnr = 0 })
                 local offset_encoding = clients[1] and clients[1].offset_encoding or "utf-16"
                 local params = vim.lsp.util.make_position_params(0, offset_encoding)
 
-                -- LSP Hover 요청 전송
                 vim.lsp.buf_request(0, "textDocument/hover", params, function(_, result)
-                    -- 결과가 없으면 정의(Definition) 피커를 대신 띄움
                     if not (result and result.contents) then
                         Snacks.picker.lsp_definitions()
                         return
                     end
 
-                    -- LSP 결과물을 마크다운 배열로 변환 후 문자열로 결합
                     local contents = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
                     if vim.tbl_isempty(contents) then
                         return
                     end
                     local final_text = table.concat(contents, "\n")
 
-                    -- Snacks.win을 이용한 커스텀 Hover 창 띄우기
                     Snacks.win({
                         text = final_text,
                         width = 0.7,
@@ -81,7 +85,19 @@ M.definitions = {
             end,
             desc = "Show Documentation",
         },
-        desc = "LSP Definitions/Hover (Snacks)",
+    },
+
+    code = {
+        name = "+Code",
+        prefix = "<leader>c",
+        {
+            "<leader>cf",
+            function()
+                require("conform").format({ async = true, lsp_format = "fallback" })
+            end,
+            desc = "Format Code",
+            mode = { "n", "v" },
+        },
         {
             "<leader>ca",
             function()
@@ -107,38 +123,30 @@ M.definitions = {
         { "<leader>cn", vim.lsp.buf.rename, desc = "Rename Symbol" },
     },
 
-    code = {
-        name = "+Code",
-        prefix = "<leader>c",
-        {
-            "<leader>cf",
-            function()
-                require("conform").format({ async = true, lsp_format = "fallback" })
-            end,
-            desc = "Format Code",
-            mode = { "n", "v" },
-        },
-    },
-
     search_replace = {
         name = "+Search & Replace",
-        prefix = "<leader>cr",
+        prefix = "<leader>s",
         {
-            "<leader>cr",
+            "<leader>ss",
             '<cmd>lua require("spectre").open_visual({select_word=true})<CR>',
             desc = "Search current word",
         },
         {
-            "<leader>cr",
+            "<leader>ss",
             '<esc><cmd>lua require("spectre").open_visual()<CR>',
             desc = "Search current word",
             mode = "v",
         },
         {
-            "<leader>crf",
+            "<leader>sf",
             '<cmd>lua require("spectre").open_file_search({select_word=true})<CR>',
             desc = "Search on current file",
         },
+    },
+
+    ui = {
+        name = "+UI Toggles",
+        prefix = "<leader>u",
     },
 
     diagnostics = {
@@ -323,6 +331,11 @@ M.definitions = {
         },
     },
 
+    editor = {
+        { "<", "<gv", desc = "Indent Left (keep selection)", mode = "v" },
+        { ">", ">gv", desc = "Indent Right (keep selection)", mode = "v" },
+    },
+
     runner = {
         name = "+Runner",
         prefix = "<leader>r",
@@ -413,5 +426,10 @@ function M.get_which_key_spec()
     end
     return spec
 end
+
+-- Apply plugin-independent keymaps directly at load time
+M.apply_keymaps("move")
+M.apply_keymaps("editor")
+M.apply_keymaps("window")
 
 return M

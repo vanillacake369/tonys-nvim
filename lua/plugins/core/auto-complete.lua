@@ -21,7 +21,7 @@ return {
 				["<CR>"] = { "fallback" },
 				["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
 				["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
-				["<C-Space>"] = { "accept", "show", "fallback" },
+				["<C-Space>"] = { "show", "accept", "fallback" },
 				["<C-e>"] = { "hide", "fallback" },
 				["<C-d>"] = { "scroll_documentation_down", "fallback" },
 				["<C-u>"] = { "scroll_documentation_up", "fallback" },
