@@ -46,6 +46,7 @@ return {
 					local keymaps = require("config.keymaps")
 					keymaps.apply_keymaps("lsp", { buffer = args.buf })
 					keymaps.apply_keymaps("code", { buffer = args.buf })
+					keymaps.apply_keymaps("debug", { buffer = args.buf })
 				end,
 			})
 

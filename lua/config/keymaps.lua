@@ -121,6 +121,74 @@ M.definitions = {
             desc = "Show Workspace Symbols",
         },
         { "<leader>cn", vim.lsp.buf.rename, desc = "Rename Symbol" },
+        {
+            "<leader>cg",
+            function()
+                Snacks.terminal("lazygit", { cwd = vim.fn.getcwd() })
+            end,
+            desc = "Open Lazygit",
+        },
+        {
+            "<leader>cb",
+            function()
+                require("gitsigns").blame_line({ full = true })
+            end,
+            desc = "Git Blame Line",
+        },
+        {
+            "<leader>cp",
+            function()
+                require("gitsigns").preview_hunk()
+            end,
+            desc = "Git Preview Hunk",
+        },
+    },
+
+    debug = {
+        name = "+Debug",
+        prefix = "<leader>cd",
+        {
+            "<leader>cdc",
+            function()
+                require("dap").continue()
+            end,
+            desc = "Start/Continue",
+        },
+        {
+            "<leader>cdt",
+            function()
+                require("dap").toggle_breakpoint()
+            end,
+            desc = "Toggle Breakpoint",
+        },
+        {
+            "<leader>cdT",
+            function()
+                require("dap").terminate()
+            end,
+            desc = "Terminate",
+        },
+        {
+            "<leader>cdi",
+            function()
+                require("dap").step_into()
+            end,
+            desc = "Step Into",
+        },
+        {
+            "<leader>cdo",
+            function()
+                require("dap").step_over()
+            end,
+            desc = "Step Over",
+        },
+        {
+            "<leader>cdu",
+            function()
+                require("dapui").toggle()
+            end,
+            desc = "Toggle DAP UI",
+        },
     },
 
     search_replace = {
