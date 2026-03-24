@@ -40,11 +40,12 @@ return {
 				severity_sort = true,
 			})
 
-			-- LSP 연결 시 키맵 설정
+			-- LSP 연결 시 키맵 설정 (buffer-local이 Neovim 빌트인 글로벌보다 우선)
 			vim.api.nvim_create_autocmd("LspAttach", {
 				callback = function(args)
 					local keymaps = require("config.keymaps")
 					keymaps.apply_keymaps("lsp", { buffer = args.buf })
+					keymaps.apply_keymaps("lsp_actions", { buffer = args.buf })
 					keymaps.apply_keymaps("code", { buffer = args.buf })
 					keymaps.apply_keymaps("debug", { buffer = args.buf })
 				end,

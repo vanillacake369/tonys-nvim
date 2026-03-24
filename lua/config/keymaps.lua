@@ -14,36 +14,23 @@ local function get_buf_path()
 end
 
 M.definitions = {
+    -- LSP Navigation (no prefix, applied on LspAttach)
     lsp = {
-        name = "+LSP",
-        prefix = nil, -- no prefix (gd, gr, etc.)
-        {
-            "gD",
-            function()
-                Snacks.picker.lsp_declarations()
-            end,
-            desc = "Jump to Declarations",
-        },
+        name = "+LSP Go-to",
+        prefix = nil,
         {
             "gd",
             function()
                 Snacks.picker.lsp_definitions()
             end,
-            desc = "Jump to Definition",
+            desc = "Go to Definition",
         },
         {
-            "gr",
+            "gD",
             function()
-                Snacks.picker.lsp_references()
+                Snacks.picker.lsp_declarations()
             end,
-            desc = "Show References",
-        },
-        {
-            "gi",
-            function()
-                Snacks.picker.lsp_implementations()
-            end,
-            desc = "Jump to Implementation",
+            desc = "Go to Declaration",
         },
         {
             "K",
@@ -87,6 +74,47 @@ M.definitions = {
         },
     },
 
+    -- Neovim 0.11+ 표준 gr* 키맵을 Snacks picker로 오버라이드
+    lsp_actions = {
+        name = "+LSP Actions",
+        prefix = "gr",
+        {
+            "grr",
+            function()
+                Snacks.picker.lsp_references()
+            end,
+            desc = "References",
+        },
+        {
+            "gri",
+            function()
+                Snacks.picker.lsp_implementations()
+            end,
+            desc = "Implementations",
+        },
+        {
+            "gra",
+            function()
+                require("tiny-code-action").code_action()
+            end,
+            desc = "Code Actions",
+            mode = { "n", "v" },
+        },
+        {
+            "grn",
+            vim.lsp.buf.rename,
+            desc = "Rename Symbol",
+        },
+        {
+            "gO",
+            function()
+                Snacks.picker.lsp_symbols()
+            end,
+            desc = "Document Symbols",
+        },
+    },
+
+    -- Code operations (applied on LspAttach)
     code = {
         name = "+Code",
         prefix = "<leader>c",
@@ -98,92 +126,76 @@ M.definitions = {
             desc = "Format Code",
             mode = { "n", "v" },
         },
+    },
+
+    -- Git (분리된 독립 그룹)
+    git = {
+        name = "+Git",
+        prefix = "<leader>g",
         {
-            "<leader>ca",
-            function()
-                require("tiny-code-action").code_action()
-            end,
-            desc = "Show Code Actions",
-            mode = { "n", "v" },
-        },
-        {
-            "<leader>cs",
-            function()
-                Snacks.picker.lsp_symbols()
-            end,
-            desc = "Show Document Symbols",
-        },
-        {
-            "<leader>cS",
-            function()
-                Snacks.picker.lsp_workspace_symbols()
-            end,
-            desc = "Show Workspace Symbols",
-        },
-        { "<leader>cn", vim.lsp.buf.rename, desc = "Rename Symbol" },
-        {
-            "<leader>cg",
+            "<leader>gg",
             function()
                 Snacks.terminal("lazygit", { cwd = vim.fn.getcwd() })
             end,
-            desc = "Open Lazygit",
+            desc = "Lazygit",
         },
         {
-            "<leader>cb",
+            "<leader>gb",
             function()
                 require("gitsigns").blame_line({ full = true })
             end,
-            desc = "Git Blame Line",
+            desc = "Blame Line",
         },
         {
-            "<leader>cp",
+            "<leader>gp",
             function()
                 require("gitsigns").preview_hunk()
             end,
-            desc = "Git Preview Hunk",
+            desc = "Preview Hunk",
         },
     },
 
+    -- Debug (승격: <leader>cd* → <leader>d*)
     debug = {
         name = "+Debug",
-        prefix = "<leader>cd",
+        prefix = "<leader>d",
         {
-            "<leader>cdc",
+            "<leader>dc",
             function()
                 require("dap").continue()
             end,
             desc = "Start/Continue",
         },
         {
-            "<leader>cdt",
+            "<leader>dt",
             function()
                 require("dap").toggle_breakpoint()
             end,
             desc = "Toggle Breakpoint",
         },
         {
-            "<leader>cdT",
+            "<leader>dT",
             function()
                 require("dap").terminate()
             end,
             desc = "Terminate",
         },
         {
-            "<leader>cdi",
+            "<leader>di",
             function()
                 require("dap").step_into()
             end,
             desc = "Step Into",
         },
         {
-            "<leader>cdo",
+            "<leader>do",
             function()
                 require("dap").step_over()
             end,
             desc = "Step Over",
         },
         {
-            "<leader>cdu",
+            "<leader>du",
             function()
                 require("dapui").toggle()
             end,
@@ -191,64 +203,63 @@ M.definitions = {
         },
     },
 
+    -- Search & Replace (Spectre)
     search_replace = {
         name = "+Search & Replace",
         prefix = "<leader>s",
         {
-            "<leader>ss",
+            "<leader>sr",
             '<cmd>lua require("spectre").open_visual({select_word=true})<CR>',
-            desc = "Search current word",
+            desc = "Replace current word",
         },
         {
-            "<leader>ss",
+            "<leader>sr",
             '<esc><cmd>lua require("spectre").open_visual()<CR>',
-            desc = "Search current word",
+            desc = "Replace selection",
             mode = "v",
         },
         {
-            "<leader>sf",
+            "<leader>sF",
             '<cmd>lua require("spectre").open_file_search({select_word=true})<CR>',
-            desc = "Search on current file",
+            desc = "Replace in current file",
         },
     },
 
+    -- UI Toggles (actual toggles in finder.lua via Snacks.toggle)
     ui = {
         name = "+UI Toggles",
         prefix = "<leader>u",
     },
 
+    -- Diagnostics (이동: <leader>d* → <leader>x*, 중복 4개 제거)
     diagnostics = {
         name = "+Diagnostics",
-        prefix = "<leader>d",
-        { "<leader>dd", "<cmd>Trouble diagnostics toggle<cr>", desc = "Show All Diagnostics" },
-        { "<leader>db", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Show Buffer Diagnostics" },
-        { "<leader>ds", "<cmd>Trouble symbols toggle focus=false<cr>", desc = "Show Symbols" },
-        { "<leader>dl", "<cmd>Trouble lsp toggle focus=false win.position=right<cr>", desc = "Show LSP References" },
-        { "<leader>dL", "<cmd>Trouble loclist toggle<cr>", desc = "Show Location List" },
-        { "<leader>dq", "<cmd>Trouble qflist toggle<cr>", desc = "Show Quickfix List" },
+        prefix = "<leader>x",
+        { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "All Diagnostics" },
+        { "<leader>xb", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
     },
 
+    -- Buffer (단축: bdc→bd, bda→bD)
     buffer = {
         name = "+Buffer",
         prefix = "<leader>b",
         {
-            "<leader>bdc",
+            "<leader>bd",
             function()
                 Snacks.bufdelete()
             end,
             desc = "Delete Current Buffer",
         },
         {
-            "<leader>bda",
+            "<leader>bD",
             function()
                 Snacks.bufdelete.all()
             end,
             desc = "Delete All Buffers",
         },
         { "<leader>bp", "<Cmd>BufferLineTogglePin<CR>", desc = "Toggle Pin Buffer" },
-        { "<leader>bdP", "<Cmd>BufferLineGroupClose ungrouped<CR>", desc = "Delete Non-Pinned Buffers" },
-        { "<leader>bdr", "<Cmd>BufferLineCloseRight<CR>", desc = "Delete Buffers to Right" },
-        { "<leader>bdl", "<Cmd>BufferLineCloseLeft<CR>", desc = "Delete Buffers to Left" },
+        { "<leader>br", "<Cmd>BufferLineCloseRight<CR>", desc = "Close Buffers to Right" },
+        { "<leader>bl", "<Cmd>BufferLineCloseLeft<CR>", desc = "Close Buffers to Left" },
         { "<S-h>", "<cmd>BufferLineCyclePrev<cr>", desc = "Previous Buffer" },
         { "<S-l>", "<cmd>BufferLineCycleNext<cr>", desc = "Next Buffer" },
         { "[b", "<cmd>BufferLineCyclePrev<cr>", desc = "Previous Buffer" },
@@ -257,6 +268,7 @@ M.definitions = {
         { "]B", "<cmd>BufferLineMoveNext<cr>", desc = "Move Buffer Right" },
     },
 
+    -- Find (Snacks picker)
     find = {
         name = "+Find",
         prefix = "<leader>f",
@@ -305,7 +317,6 @@ M.definitions = {
         {
             "<leader>fg",
             function()
-                -- Snacks.picker.grep({ cwd = get_buf_path() })
                 Snacks.picker.grep()
             end,
             desc = "Grep in Files",
@@ -327,39 +338,30 @@ M.definitions = {
         {
             "<leader>fp",
             function()
-                -- Snacks.picker.projects({ cwd = get_buf_path() })
                 Snacks.picker.projects()
             end,
             desc = "Find Project",
         },
+        {
+            "<leader>fs",
+            function()
+                Snacks.picker.lsp_workspace_symbols()
+            end,
+            desc = "Find Workspace Symbols",
+        },
     },
 
-    window = {
-        name = "+Window",
-        prefix = "<leader>w",
-        { "<leader>w-", "<C-w>s", desc = "Split Below" },
-        { "<leader>w|", "<C-w>v", desc = "Split Right" },
-        { "<leader>wc", "<C-w>q", desc = "Close Window" },
-        { "<leader>wh", "<C-w>h", desc = "Go to Left Window" },
-        { "<leader>wj", "<C-w>j", desc = "Go to Down Window" },
-        { "<leader>wk", "<C-w>k", desc = "Go to Up Window" },
-        { "<leader>wl", "<C-w>l", desc = "Go to Right Window" },
-        { "<leader>wH", "<C-w>H", desc = "Move Window to Left" },
-        { "<leader>wJ", "<C-w>J", desc = "Move Window to Down" },
-        { "<leader>wK", "<C-w>K", desc = "Move Window to Up" },
-        { "<leader>wL", "<C-w>L", desc = "Move Window to Right" },
-        { "<leader>w=", "<C-w>=", desc = "Equal Size Windows" },
-    },
-
+    -- Align
     align = {
         name = "+Align",
         prefix = "<leader>a",
         { "<leader>a", "<Plug>(EasyAlign)", desc = "Align Text", mode = { "n", "x" } },
     },
 
+    -- Terminal
     terminal = {
         {
-            "<C-_>",
+            "<C-/>",
             function()
                 Snacks.terminal()
             end,
@@ -368,11 +370,13 @@ M.definitions = {
         },
     },
 
+    -- Comment (plugin-managed hints)
     comment = {
         { "gc", desc = "Comment toggle linewise", mode = { "n", "v" } },
         { "gb", desc = "Comment toggle blockwise", mode = { "n", "v" } },
     },
 
+    -- Which-key
     which_key = {
         {
             "<leader>?",
@@ -383,6 +387,7 @@ M.definitions = {
         },
     },
 
+    -- Visual mode helpers
     move = {
         name = "+Move Lines",
         {
@@ -404,6 +409,7 @@ M.definitions = {
         { ">", ">gv", desc = "Indent Right (keep selection)", mode = "v" },
     },
 
+    -- Runner (Overseer)
     runner = {
         name = "+Runner",
         prefix = "<leader>r",
@@ -498,6 +504,5 @@ end
 -- Apply plugin-independent keymaps directly at load time
 M.apply_keymaps("move")
 M.apply_keymaps("editor")
-M.apply_keymaps("window")
 
 return M

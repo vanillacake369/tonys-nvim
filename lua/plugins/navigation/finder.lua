@@ -62,9 +62,10 @@ return {
 
 	keys = function()
 		local keymaps = require("config.keymaps")
-		local find_keys = keymaps.get_keys("find")
-		local terminal_keys = keymaps.get_keys("terminal")
-		return vim.list_extend(find_keys, terminal_keys)
+		local keys = keymaps.get_keys("find")
+		vim.list_extend(keys, keymaps.get_keys("terminal"))
+		vim.list_extend(keys, keymaps.get_keys("git"))
+		return keys
 	end,
 	init = function()
 		vim.api.nvim_create_autocmd("User", {
