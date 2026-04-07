@@ -1,268 +1,180 @@
--- Code Runner Templates
+-- Code Runner Configuration (Overseer)
 
--- 공통 컴포넌트: 자동으로 float 출력창 열기 + 종료 후 q/Esc로 닫기
+-- 1. Helper Functions (Project & File detection)
+local function get_buf_file() return vim.fn.expand("%:p") end
+local function get_buf_dir() return vim.fn.expand("%:p:h") end
+
+local function find_upward(names, start_path)
+	local found = vim.fs.find(names, { path = start_path, upward = true, limit = 1 })[1]
+	return found and vim.fs.dirname(found) or nil
+end
+
+local function read_file(path)
+	if vim.fn.filereadable(path) == 0 then return "" end
+	return table.concat(vim.fn.readfile(path), "\n")
+end
+
+-- Java & Gradle specific detection
+local function get_gradle_root()
+	return find_upward({ "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "gradlew" }, get_buf_dir())
+end
+
+local function is_spring_project(root)
+	if not root then return false end
+	local content = read_file(root .. "/build.gradle") .. "\n" .. read_file(root .. "/build.gradle.kts")
+	return content:find("org.springframework.boot", 1, true) ~= nil or content:find("spring%-boot") ~= nil
+end
+
+local function get_java_package(file)
+	if vim.fn.filereadable(file) == 0 then return nil end
+	for _, line in ipairs(vim.fn.readfile(file)) do
+		local pkg = line:match("^%s*package%s+([%w_%.]+)%s*;")
+		if pkg then return pkg end
+	end
+	return nil
+end
+
+local function get_java_main_class(file)
+	local class = vim.fn.fnamemodify(file, ":t:r")
+	local pkg = get_java_package(file)
+	return pkg and (pkg .. "." .. class) or class
+end
+
+local function get_java_classpath_root(file)
+	local root = file:match("^(.*)/src/main/java/") or file:match("^(.*)/src/test/java/") or file:match("^(.*)/src/java/")
+	return root or vim.fn.fnamemodify(file, ":h")
+end
+
+-- 2. Custom Components
+local function register_custom_components(overseer)
+	-- 프로세스 종료 후 q/Esc 키로 float 창 닫기
+	overseer.register_component("close_on_keypress", {
+		desc = "Close output window with q/Esc after process exits",
+		constructor = function()
+			return {
+				on_exit = function(_, task)
+					local bufnr = task:get_bufnr()
+					if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
+					vim.schedule(function()
+						if not vim.api.nvim_buf_is_valid(bufnr) then return end
+						-- stopinsert if in terminal mode
+						for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+							if vim.api.nvim_win_is_valid(win) then
+								vim.api.nvim_win_call(win, function() vim.cmd("stopinsert") end)
+							end
+						end
+						-- set keymaps for closing
+						for _, key in ipairs({ "q", "<Esc>" }) do
+							vim.keymap.set("n", key, function()
+								for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+									pcall(vim.api.nvim_win_close, win, true)
+								end
+							end, { buffer = bufnr, nowait = true })
+						end
+					end)
+				end,
+			}
+		end,
+	})
+end
+
+-- 3. Templates & Config
 local function default_components()
-    return {
-        { "open_output", direction = "float", on_start = "always", focus = true },
-        "close_on_keypress",
-        { "on_output_quickfix", set_diagnostics = true, open_on_match = true },
-        "on_result_diagnostics",
-        "default",
-    }
+	return {
+		{ "open_output", direction = "float", on_start = "always", focus = true },
+		"close_on_keypress",
+		{ "on_output_quickfix", set_diagnostics = true, open_on_match = true },
+		"on_result_diagnostics",
+		"default",
+	}
+end
+
+local run_cmds = {
+	go = { "go", "run" }, python = { "python" }, lua = { "lua" },
+	sh = { "bash" }, bash = { "bash" }, javascript = { "node" },
+	typescript = { "npx", "ts-node" }, rust = { "cargo", "run" },
+}
+
+local function gradle_cmd(root, task)
+	return (vim.fn.filereadable(root .. "/gradlew") == 1) and { "./gradlew", task } or { "gradle", task }
 end
 
 local templates = {
-    -- Run Script (범용)
-    {
-        name = "Run Script",
-        builder = function()
-            local file = vim.fn.expand("%:p")
-            local ft = vim.bo.filetype
-            local cmd = { file }
-
-            if ft == "go" then
-                cmd = { "go", "run", file }
-            elseif ft == "python" then
-                cmd = { "python", file }
-            elseif ft == "lua" then
-                cmd = { "lua", file }
-            elseif ft == "sh" or ft == "bash" then
-                cmd = { "bash", file }
-            elseif ft == "javascript" then
-                cmd = { "node", file }
-            elseif ft == "typescript" then
-                cmd = { "npx", "ts-node", file }
-            elseif ft == "rust" then
-                cmd = { "cargo", "run" }
-            elseif ft == "c" then
-                local out = vim.fn.expand("%:p:r")
-                cmd = { "sh", "-c", "gcc " .. file .. " -o " .. out .. " && " .. out }
-            end
-
-            return {
-                cmd = cmd,
-                components = default_components(),
-            }
-        end,
-        condition = {
-            filetype = { "go", "python", "lua", "sh", "bash", "javascript", "typescript", "rust", "c" },
-        },
-    },
-
-    -- Go
-    {
-        name = "Go Run",
-        builder = function()
-            return { cmd = { "go", "run", vim.fn.expand("%:p") }, components = default_components() }
-        end,
-        condition = { filetype = { "go" } },
-    },
-    {
-        name = "Go Test",
-        builder = function()
-            return { cmd = { "go", "test", "-v", "./..." }, components = default_components() }
-        end,
-        condition = { filetype = { "go" } },
-    },
-    {
-        name = "Go Build",
-        builder = function()
-            return { cmd = { "go", "build", "-v", "./..." }, components = default_components() }
-        end,
-        condition = { filetype = { "go" } },
-        tags = { "BUILD" },
-    },
-
-    -- Python
-    {
-        name = "Python Run",
-        builder = function()
-            return { cmd = { "python", vim.fn.expand("%:p") }, components = default_components() }
-        end,
-        condition = { filetype = { "python" } },
-    },
-    {
-        name = "Python Test (pytest)",
-        builder = function()
-            return { cmd = { "pytest", "-v" }, components = default_components() }
-        end,
-        condition = { filetype = { "python" } },
-    },
-
-    -- Java (Gradle)
-    {
-        name = "Gradle Build",
-        builder = function()
-            return { cmd = { "gradle", "build" }, components = default_components() }
-        end,
-        condition = { filetype = { "java" }, callback = function()
-            return vim.fn.filereadable("build.gradle") == 1 or vim.fn.filereadable("build.gradle.kts") == 1
-        end },
-        tags = { "BUILD" },
-    },
-    {
-        name = "Gradle Test",
-        builder = function()
-            return { cmd = { "gradle", "test" }, components = default_components() }
-        end,
-        condition = { filetype = { "java" }, callback = function()
-            return vim.fn.filereadable("build.gradle") == 1 or vim.fn.filereadable("build.gradle.kts") == 1
-        end },
-    },
-    {
-        name = "Gradle Run",
-        builder = function()
-            return { cmd = { "gradle", "run" }, components = default_components() }
-        end,
-        condition = { filetype = { "java" }, callback = function()
-            return vim.fn.filereadable("build.gradle") == 1 or vim.fn.filereadable("build.gradle.kts") == 1
-        end },
-    },
-
-    -- Rust
-    {
-        name = "Cargo Run",
-        builder = function()
-            return { cmd = { "cargo", "run" }, components = default_components() }
-        end,
-        condition = { filetype = { "rust" } },
-    },
-    {
-        name = "Cargo Build",
-        builder = function()
-            return { cmd = { "cargo", "build" }, components = default_components() }
-        end,
-        condition = { filetype = { "rust" } },
-        tags = { "BUILD" },
-    },
-    {
-        name = "Cargo Test",
-        builder = function()
-            return { cmd = { "cargo", "test" }, components = default_components() }
-        end,
-        condition = { filetype = { "rust" } },
-    },
-
-    -- Nix
-    {
-        name = "Nix Build",
-        builder = function()
-            return { cmd = { "nix", "build" }, components = default_components() }
-        end,
-        condition = { filetype = { "nix" } },
-        tags = { "BUILD" },
-    },
-    {
-        name = "Nix Flake Check",
-        builder = function()
-            return { cmd = { "nix", "flake", "check" }, components = default_components() }
-        end,
-        condition = { filetype = { "nix" }, callback = function()
-            return vim.fn.filereadable("flake.nix") == 1
-        end },
-    },
-
-    -- Lua
-    {
-        name = "Lua Run",
-        builder = function()
-            return { cmd = { "lua", vim.fn.expand("%:p") }, components = default_components() }
-        end,
-        condition = { filetype = { "lua" } },
-    },
-
-    -- C
-    {
-        name = "C Compile & Run",
-        builder = function()
-            local file = vim.fn.expand("%:p")
-            local out = vim.fn.expand("%:p:r")
-            return { cmd = { "sh", "-c", "gcc " .. file .. " -o " .. out .. " && " .. out }, components = default_components() }
-        end,
-        condition = { filetype = { "c" } },
-    },
-
-    -- TypeScript/JavaScript
-    {
-        name = "Node Run",
-        builder = function()
-            return { cmd = { "node", vim.fn.expand("%:p") }, components = default_components() }
-        end,
-        condition = { filetype = { "javascript" } },
-    },
-    {
-        name = "TS Node Run",
-        builder = function()
-            return { cmd = { "npx", "ts-node", vim.fn.expand("%:p") }, components = default_components() }
-        end,
-        condition = { filetype = { "typescript" } },
-    },
-    {
-        name = "NPM Test",
-        builder = function()
-            return { cmd = { "npm", "test" }, components = default_components() }
-        end,
-        condition = { filetype = { "javascript", "typescript" }, callback = function()
-            return vim.fn.filereadable("package.json") == 1
-        end },
-    },
-
-    -- Terraform
-    {
-        name = "Terraform Plan",
-        builder = function()
-            return { cmd = { "terraform", "plan" }, components = default_components() }
-        end,
-        condition = { filetype = { "terraform" } },
-    },
-    {
-        name = "Terraform Apply",
-        builder = function()
-            return { cmd = { "terraform", "apply" }, components = default_components() }
-        end,
-        condition = { filetype = { "terraform" } },
-    },
-
-    -- Bash
-    {
-        name = "Bash Run",
-        builder = function()
-            return { cmd = { "bash", vim.fn.expand("%:p") }, components = default_components() }
-        end,
-        condition = { filetype = { "sh", "bash" } },
-    },
+	{
+		name = "Run Script",
+		builder = function()
+			local file, ft = get_buf_file(), vim.bo.filetype
+			local cmd = run_cmds[ft] and vim.list_extend({ unpack(run_cmds[ft]) }, { file }) or { file }
+			if ft == "c" then
+				local out = vim.fn.expand("%:p:r")
+				cmd = { "sh", "-c", string.format("gcc %s -o %s && %s", file, out, out) }
+			end
+			return { cmd = cmd, components = default_components() }
+		end,
+		condition = { filetype = vim.tbl_keys(run_cmds) },
+	},
+	{
+		name = "Java: Compile & Run (Single File)",
+		builder = function()
+			local file = get_buf_file()
+			local cp, main = get_java_classpath_root(file), get_java_main_class(file)
+			return {
+				cmd = { "sh", "-c", string.format("javac %s && java -cp %s %s", file, cp, main) },
+				components = default_components(),
+			}
+		end,
+		condition = { filetype = { "java" }, callback = function() return not get_gradle_root() end },
+	},
+	{
+		name = "Gradle: Build",
+		builder = function()
+			local root = get_gradle_root()
+			return { cmd = gradle_cmd(root, "build"), cwd = root, components = default_components() }
+		end,
+		condition = { filetype = { "java" }, callback = function() return get_gradle_root() ~= nil end },
+		tags = { "BUILD" },
+	},
+	{
+		name = "Spring Boot: Run",
+		builder = function()
+			local root = get_gradle_root()
+			return { cmd = gradle_cmd(root, "bootRun"), cwd = root, components = default_components() }
+		end,
+		condition = { filetype = { "java" }, callback = function()
+			local root = get_gradle_root()
+			return root and is_spring_project(root)
+		end },
+	},
+	{
+		name = "Cargo: Test",
+		builder = function() return { cmd = { "cargo", "test" }, components = default_components() } end,
+		condition = { filetype = { "rust" } },
+	},
+	{
+		name = "Go: Test",
+		builder = function() return { cmd = { "go", "test", "-v", "./..." }, components = default_components() } end,
+		condition = { filetype = { "go" } },
+	},
+	{
+		name = "Nix: Build",
+		builder = function() return { cmd = { "nix", "build" }, components = default_components() } end,
+		condition = { filetype = { "nix" } },
+		tags = { "BUILD" },
+	},
 }
 
 return {
-    "stevearc/overseer.nvim",
-    cmd = {
-        "OverseerRun",
-        "OverseerToggle",
-        "OverseerBuild",
-        "OverseerTaskAction",
-        "OverseerQuickAction",
-        "OverseerRestartLast",
-    },
-    keys = function()
-        return require("config.keymaps").get_keys("runner")
-    end,
-    opts = {
-        task_list = {
-            direction = "bottom",
-            min_height = 15,
-            max_height = 25,
-            default_detail = 1,
-        },
-        templates = { "builtin" },
-    },
-    config = function(_, opts)
-        local overseer = require("overseer")
-        overseer.setup(opts)
-
-        -- 커스텀 템플릿 등록
-        for _, template in ipairs(templates) do
-            overseer.register_template(template)
-        end
-
-    end,
+	"stevearc/overseer.nvim",
+	cmd = { "OverseerRun", "OverseerToggle", "OverseerBuild", "OverseerTaskAction", "OverseerQuickAction", "OverseerRestartLast" },
+	keys = function() return require("config.keymaps").get_keys("runner") end,
+	opts = {
+		task_list = { direction = "bottom", min_height = 15, max_height = 25, default_detail = 1 },
+		templates = { "builtin" },
+	},
+	config = function(_, opts)
+		local overseer = require("overseer")
+		overseer.setup(opts)
+		register_custom_components(overseer)
+		for _, template in ipairs(templates) do overseer.register_template(template) end
+	end,
 }
