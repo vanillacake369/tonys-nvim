@@ -4,11 +4,22 @@ return {
 	opts = function()
 		return {
 			preset = "modern",
+			-- Hide builtin g-prefix and noisy operator keymaps (gU, gu, g~)
+			filter = function(mapping)
+				local dominated = { gU = true, gu = true, ["g~"] = true, gw = true }
+				return not dominated[mapping.lhs]
+			end,
+			plugins = {
+				presets = {
+					g = false,
+				},
+			},
 			win = {
 				border = "rounded",
 				title = true,
 				title_pos = "center",
 				padding = { 2, 2 },
+				height = { min = 4, max = 25 },
 			},
 			spec = require("config.keymaps").get_which_key_spec(),
 		}
