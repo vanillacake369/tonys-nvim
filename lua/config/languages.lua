@@ -312,4 +312,15 @@ function M.collect_formatters()
 	return collect_config("formatters", false)
 end
 
+-- 5. Formatters Options: 모든 언어의 포맷터 옵션을 하나의 테이블로 병합하여 반환
+function M.collect_formatters_opts()
+	local opts = {}
+	for _, config in pairs(M.languages) do
+		if config.formatters_opts then
+			opts = vim.tbl_deep_extend("force", opts, config.formatters_opts)
+		end
+	end
+	return opts
+end
+
 return M
