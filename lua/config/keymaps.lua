@@ -126,6 +126,14 @@ M.definitions = {
             desc = "Format Code",
             mode = { "n", "v" },
         },
+        {
+            "<leader>cr",
+            function()
+                require("refactoring").select_refactor()
+            end,
+            desc = "Refactor Menu",
+            mode = { "n", "v" },
+        },
     },
 
     -- Git (분리된 독립 그룹)
