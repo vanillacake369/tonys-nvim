@@ -8,10 +8,33 @@ return {
     opts = function()
         local lang = require("config.languages")
 
-        -- 모든 언어에 공통으로 적용될 기본 포맷터 설정 (예: 코드 블록 내 주입된 코드 포맷팅)
+        -- 모든 언어에 공통으로 적용될 기본 포맷터 설정
+        -- (예: 코드 블록 내 주입된 코드 포맷팅)
+        -- NOTE : indent 는 가시성을 위해 4 로 통일(alejandra 는 조작불가)
+        local indent = 4
         local default_formatters = {
             injected = {
                 options = { ignore_errors = true },
+            },
+            -- Java: google-java-format
+            ["google-java-format"] = {
+                prepend_args = { "--aosp" },
+            },
+            -- Lua: stylua
+            ["stylua"] = {
+                prepend_args = { "--indent-type", "Spaces", "--indent-width", tostring(indent) },
+            },
+            -- JS/TS/HTML: prettier
+            ["prettier"] = {
+                prepend_args = { "--tab-width", tostring(indent) },
+            },
+            -- C/C++: clang-format
+            ["clang-format"] = {
+                prepend_args = { "--style", "{IndentWidth: " .. indent .. "}" },
+            },
+            -- Sh/Bash: shfmt
+            ["shfmt"] = {
+                prepend_args = { "-i", tostring(indent) },
             },
         }
 

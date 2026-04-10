@@ -6,6 +6,7 @@ vim.opt.showmode = false
 -- Tabs and indentation
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
 vim.opt.expandtab = true
 vim.opt.autoindent = true
 
@@ -17,4 +18,3 @@ vim.opt.wrap = false
 
 -- Incremental Search
 vim.opt.incsearch = true
-
