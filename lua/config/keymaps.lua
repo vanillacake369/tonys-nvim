@@ -252,6 +252,15 @@ M.definitions = {
         name = "+Buffer",
         prefix = "<leader>b",
         {
+            "<leader>bb",
+            function()
+                if vim.fn.bufnr("#") > 0 then
+                    vim.cmd("buffer #")
+                end
+            end,
+            desc = "Alternate Buffer",
+        },
+        {
             "<leader>bd",
             function()
                 Snacks.bufdelete()
@@ -395,6 +404,79 @@ M.definitions = {
         },
     },
 
+    -- Window management
+    window = {
+        name = "+Window",
+        prefix = "<leader>w",
+        {
+            "<leader>wz",
+            function()
+                Snacks.toggle.zoom()
+            end,
+            desc = "Toggle Zoom",
+        },
+        {
+            "<leader>w-",
+            "<C-w>s",
+            desc = "Split Below",
+        },
+        {
+            "<leader>w|",
+            "<C-w>v",
+            desc = "Split Right",
+        },
+        {
+            "<leader>wc",
+            "<C-w>c",
+            desc = "Close Window",
+        },
+        {
+            "<leader>wh",
+            "<C-w>h",
+            desc = "Go Left",
+        },
+        {
+            "<leader>wj",
+            "<C-w>j",
+            desc = "Go Down",
+        },
+        {
+            "<leader>wk",
+            "<C-w>k",
+            desc = "Go Up",
+        },
+        {
+            "<leader>wl",
+            "<C-w>l",
+            desc = "Go Right",
+        },
+        {
+            "<leader>w=",
+            "<C-w>=",
+            desc = "Equalize Sizes",
+        },
+        {
+            "<leader>w<",
+            "<C-w><",
+            desc = "Narrow Window",
+        },
+        {
+            "<leader>w>",
+            "<C-w>>",
+            desc = "Widen Window",
+        },
+        {
+            "<leader>w+",
+            "<C-w>+",
+            desc = "Increase Height",
+        },
+        {
+            "<leader>w_",
+            "<C-w>-",
+            desc = "Decrease Height",
+        },
+    },
+
     -- Visual mode helpers
     move = {
         name = "+Move Lines",
@@ -450,6 +532,41 @@ M.definitions = {
             "<leader>rl",
             "<cmd>OverseerRestartLast<cr>",
             desc = "Restart Last Task",
+        },
+    },
+
+    -- Paste (img-clip.nvim)
+    paste = {
+        {
+            "<leader>p",
+            function()
+                Snacks.input({
+                    prompt = "Image file name (optional)",
+                    default = os.date("%Y-%m-%d-%H-%M-%S"),
+                }, function(value)
+                    if value == nil then
+                        return
+                    end
+
+                    value = vim.trim(value)
+                    local api_opts = { prompt_for_file_name = false }
+                    if value ~= "" then
+                        api_opts.file_name = value
+                    end
+
+                    local ok, pasted = pcall(function()
+                        return require("img-clip").paste_image(api_opts)
+                    end)
+                    if not ok then
+                        vim.notify("img-clip failed: " .. tostring(pasted), vim.log.levels.ERROR)
+                        return
+                    end
+                    if not pasted then
+                        vim.notify("img-clip could not paste from clipboard", vim.log.levels.WARN)
+                    end
+                end)
+            end,
+            desc = "Paste Image from Clipboard (with filename)",
         },
     },
 }
@@ -510,6 +627,7 @@ function M.get_which_key_spec()
 end
 
 -- Apply plugin-independent keymaps directly at load time
+M.apply_keymaps("window")
 M.apply_keymaps("move")
 M.apply_keymaps("editor")
 
