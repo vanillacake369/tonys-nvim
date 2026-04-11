@@ -16,11 +16,11 @@ M.languages = {
 		formatters = { "ruff_format", "black" },
 	},
 	java = {
-		lsp_server = "jdtls",
-		lsp_opts = {
-			cmd = { "jdtls" },
-			filetypes = { "java" },
-		},
+		-- lsp_server = "jdtls",
+		-- lsp_opts = {
+		-- 	cmd = { "jdtls" },
+		-- 	filetypes = { "java" },
+		-- },
 		treesitter = {
 			"java",
 		},
