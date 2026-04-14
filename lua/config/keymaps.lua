@@ -79,6 +79,20 @@ M.definitions = {
         name = "+LSP Actions",
         prefix = "gr",
         {
+            "grd",
+            function()
+                Snacks.picker.lsp_definitions()
+            end,
+            desc = "Definitions",
+        },
+        {
+            "grt",
+            function()
+                Snacks.picker.lsp_type_definitions()
+            end,
+            desc = "Type Definitions",
+        },
+        {
             "grr",
             function()
                 Snacks.picker.lsp_references()
@@ -121,7 +135,7 @@ M.definitions = {
         {
             "<leader>cf",
             function()
-                require("conform").format({ async = true, lsp_format = "fallback" })
+                require("conform").format({ async = true, lsp_format = "never" })
             end,
             desc = "Format Code",
             mode = { "n", "v" },
