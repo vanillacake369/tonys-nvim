@@ -2,9 +2,7 @@
 -- clipboard 로 넘어가지 않게
 -- unnamed register 를 비활성화하고
 -- black hole register 사용
-vim.keymap.set("n", "c", '"_c')
 vim.keymap.set("n", "d", '"_d')
-vim.keymap.set("n", "cc", '"_cc')
 vim.keymap.set("n", "dd", '"_dd')
 
 -- 시스템 클립보드 연동

@@ -107,14 +107,6 @@ M.definitions = {
             desc = "Implementations",
         },
         {
-            "gra",
-            function()
-                require("tiny-code-action").code_action()
-            end,
-            desc = "Code Actions",
-            mode = { "n", "v" },
-        },
-        {
             "grn",
             vim.lsp.buf.rename,
             desc = "Rename Symbol",
@@ -148,6 +140,19 @@ M.definitions = {
             desc = "Refactor Menu",
             mode = { "n", "v" },
         },
+        {
+            "<leader>ca",
+            function()
+                local clients = vim.lsp.get_clients({ bufnr = 0, name = "jdtls" })
+                if #clients > 0 then
+                    vim.lsp.buf.code_action()
+                else
+                    require("tiny-code-action").code_action()
+                end
+            end,
+            desc = "Code Actions",
+            mode = { "n", "v" },
+        },
     },
 
     -- Git (분리된 독립 그룹)
@@ -169,11 +174,41 @@ M.definitions = {
             desc = "Blame Line",
         },
         {
-            "<leader>gp",
+            "<leader>gd",
             function()
-                require("gitsigns").preview_hunk()
+                Snacks.picker.git_diff()
             end,
-            desc = "Preview Hunk",
+            desc = "Git Diff (Hunks)",
+        },
+        {
+            "<leader>go",
+            function()
+                Snacks.gitbrowse()
+            end,
+            desc = "Open in Browser",
+        },
+        {
+            "<leader>gf",
+            function()
+                Snacks.picker.git_log_file()
+            end,
+            desc = "Git File History",
+        },
+        {
+            mode = { "n", "t" },
+            "]h",
+            function()
+                require("gitsigns").next_hunk()
+            end,
+            desc = "Next Hunk",
+        },
+        {
+            mode = { "n", "t" },
+            "[h",
+            function()
+                require("gitsigns").prev_hunk()
+            end,
+            desc = "Prev Hunk",
         },
     },
 
