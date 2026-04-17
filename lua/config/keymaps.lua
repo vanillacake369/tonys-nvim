@@ -335,6 +335,7 @@ M.definitions = {
     },
 
     -- Find (Snacks picker)
+    -- TODO :
     find = {
         name = "+Find",
         prefix = "<leader>f",
@@ -414,6 +415,44 @@ M.definitions = {
                 Snacks.picker.lsp_workspace_symbols()
             end,
             desc = "Find Workspace Symbols",
+        },
+    },
+
+    -- ToDo Comment View (Snacks)
+    -- TODO :
+    -- TODO :
+    todo = {
+        name = "+Todo",
+        prefix = "<leader>t",
+        {
+            "<leader>tt",
+            function()
+                vim.cmd("vimgrep /TODO\\|FIXME\\|HACK\\|NOTE/j **/*")
+                Snacks.picker.qflist()
+            end,
+            desc = "Todo List (Telescope)",
+        },
+        {
+            "<leader>tw",
+            function()
+                require("todo-comments").jump_next()
+            end,
+            desc = "Next Todo Comment",
+        },
+        {
+            "<leader>tb",
+            function()
+                require("todo-comments").jump_prev()
+            end,
+            desc = "Previous Todo Comment",
+        },
+        {
+            "<leader>tf",
+            function()
+                vim.cmd("vimgrep /TODO\\|FIXME\\|HACK\\|NOTE/j %")
+                Snacks.picker.qflist()
+            end,
+            desc = "Todo Current File",
         },
     },
 
