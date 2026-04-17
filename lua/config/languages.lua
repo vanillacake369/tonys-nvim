@@ -64,7 +64,6 @@ M.languages = {
         treesitter = {
             "yaml",
         },
-        linters = { "yamllint" },
         formatters = { "prettier", "yamlfmt" },
     },
     go = {

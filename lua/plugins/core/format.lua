@@ -28,18 +28,36 @@ return {
                 },
             },
             -- Yaml: yamlfmt
-            -- retain_line_breaks_single: 사용자가 넣은 빈 줄 하나는 무조건 유지
-            -- scan_folded_as_literal: 긴 문자열 처리 시 가독성 향상
+            -- retain_line_breaks_single -- 빈 줄 하나는 무조건 유지
+            -- retain_line_breaks_multi -- 빈 줄 여러 개도 유지
+            -- scan_folded_as_literal -- 긴 문자열 가독성 향상
+            -- include_document_start -- --- 문서 시작 유지
+            -- line-break-after-comment=true -- 주석 뒤에 줄바꿈
+            -- preserve-quoted=false -- 불필요한 따옴표 제거
+            -- indentless_arrays=false -- 시퀀스(리스트) 들여쓰기
             ["yamlfmt"] = {
+
                 prepend_args = {
                     "-formatter",
+                    "retain_line_breaks=true",
+                    "-formatter",
                     "retain_line_breaks_single=true",
+                    "-formatter",
+                    "retain_line_breaks_multi=true",
                     "-formatter",
                     "scan_folded_as_literal=true",
                     "-formatter",
                     "include_document_start=true",
                     "-formatter",
+                    "indentless_arrays=false",
+                    "-formatter",
+                    "line-break-after-comment=true",
+                    "-formatter",
+                    "preserve-quoted=false",
+                    "-formatter",
                     "indent=" .. indent,
+                    "-formatter",
+                    "width=" .. columLimit,
                 },
             },
             -- Toml: taplo

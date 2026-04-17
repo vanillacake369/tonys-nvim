@@ -335,7 +335,6 @@ M.definitions = {
     },
 
     -- Find (Snacks picker)
-    -- TODO :
     find = {
         name = "+Find",
         prefix = "<leader>f",
@@ -419,8 +418,6 @@ M.definitions = {
     },
 
     -- ToDo Comment View (Snacks)
-    -- TODO :
-    -- TODO :
     todo = {
         name = "+Todo",
         prefix = "<leader>t",
