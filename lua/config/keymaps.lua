@@ -417,6 +417,24 @@ M.definitions = {
         },
     },
 
+    -- Spring Initializr
+    springInitializr = {
+        name = "+Spring Initializr",
+        prefix = "<leader>S",
+        {
+            "<leader>Si",
+            "<cmd>SpringInitializr<cr>",
+            desc = "Spring Initialize",
+            mode = { "n" },
+        },
+        {
+            "<leader>Sg",
+            "<cmd>SpringGenerateProject<cr>",
+            desc = "Spring Generate",
+            mode = { "n" },
+        },
+    },
+
     -- ToDo Comment View (Snacks)
     todo = {
         name = "+Todo",
