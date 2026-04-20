@@ -326,6 +326,14 @@ M.definitions = {
         { "<leader>bp", "<Cmd>BufferLineTogglePin<CR>", desc = "Toggle Pin Buffer" },
         { "<leader>br", "<Cmd>BufferLineCloseRight<CR>", desc = "Close Buffers to Right" },
         { "<leader>bl", "<Cmd>BufferLineCloseLeft<CR>", desc = "Close Buffers to Left" },
+        { "<leader>bu", "<Cmd>b #<CR>", desc = "Undo / Restore Closed Buffer" },
+        {
+            "<leader>bo",
+            function()
+                Snacks.bufdelete.other()
+            end,
+            desc = "Delete Other Buffers",
+        },
         { "<S-h>", "<cmd>BufferLineCyclePrev<cr>", desc = "Previous Buffer" },
         { "<S-l>", "<cmd>BufferLineCycleNext<cr>", desc = "Next Buffer" },
         { "[b", "<cmd>BufferLineCyclePrev<cr>", desc = "Previous Buffer" },
