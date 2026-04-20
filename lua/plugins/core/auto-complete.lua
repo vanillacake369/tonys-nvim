@@ -8,6 +8,7 @@ return {
         dependencies = {
             "rafamadriz/friendly-snippets",
             "folke/lazydev.nvim",
+            "fang2hou/blink-copilot",
         },
 
         ---@module 'blink.cmp'
@@ -87,9 +88,18 @@ return {
             },
 
             -- Sources
+            -- NOTE:
+            -- Using saghen/blink.cmp
+            -- for integrations with copilot
             sources = {
-                default = { "lazydev", "lsp", "path", "snippets", "buffer" },
+                default = { "lazydev", "lsp", "path", "snippets", "buffer", "copilot" },
                 providers = {
+                    copilot = {
+                        name = "copilot",
+                        module = "blink-copilot",
+                        score_offset = 100,
+                        async = true,
+                    },
                     lazydev = {
                         name = "LazyDev",
                         module = "lazydev.integrations.blink",

@@ -148,7 +148,7 @@ return {
                 lsp_format = "never",
             },
             format_on_save = {
-                timeout_ms = 500,
+                timeout_ms = 700,
                 lsp_format = "never",
             },
             -- 파일 타입별 포맷터 매핑을 languages.lua에서 자동으로 가져옴
