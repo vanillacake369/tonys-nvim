@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Pre-commit hook: validate staged Lua files match CI quality gates.
+# Enable: git config core.hooksPath .githooks
+set -euo pipefail
+
+staged_lua=$(git diff --cached --name-only --diff-filter=ACM | grep '\.lua$' || true)
+if [ -z "$staged_lua" ]; then
+    exit 0
+fi
+
+fail=0
+
+# 1. StyLua format check (mirrors .github/workflows/lua-quality.yml)
+if command -v stylua >/dev/null 2>&1; then
+    if ! echo "$staged_lua" | xargs stylua --check 2>&1; then
+        echo "❌ stylua: run 'stylua lua/' to auto-fix" >&2
+        fail=1
+    fi
+else
+    echo "⚠ stylua not in PATH — skipping format check" >&2
+fi
+
+# 2. Selene lint (project-wide; matches CI invocation)
+#    --allow-warnings: 경고는 차단하지 않음, 에러만 fail 처리
+if command -v selene >/dev/null 2>&1; then
+    if ! selene --display-style=quiet --allow-warnings lua/ 2>&1; then
+        echo "❌ selene: lint errors above" >&2
+        fail=1
+    fi
+else
+    echo "⚠ selene not in PATH — skipping lint check" >&2
+fi
+
+# 3. Quick syntax parse (mirrors nvim-test.yml syntax step)
+if command -v nvim >/dev/null 2>&1; then
+    while IFS= read -r f; do
+        err=$(nvim --headless -u NONE \
+            -c "lua local _, e = loadfile('$f'); if e then io.stderr:write(e..'\n'); vim.cmd('cq') end" \
+            -c "qa" 2>&1)
+        if [ -n "$err" ]; then
+            echo "❌ syntax error in $f" >&2
+            echo "$err" >&2
+            fail=1
+        fi
+    done <<< "$staged_lua"
+fi
+
+exit $fail
