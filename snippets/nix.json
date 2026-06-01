@@ -1,0 +1,17 @@
+{
+  "Nix Test (GWT)": {
+    "prefix": "test",
+    "body": [
+      "${1:테스트코드명} = pkgs.runCommand \"${2:테스트코드명}\" { } ''",
+      "  # GIVEN",
+      "  $3",
+      "  # WHEN",
+      "  $4",
+      "  # THEN",
+      "  echo \"Should be implemented\" >&2 && exit 1",
+      "  touch $out",
+      "'';"
+    ],
+    "description": "Nix pkgs.runCommand test derivation with GIVEN/WHEN/THEN"
+  }
+}

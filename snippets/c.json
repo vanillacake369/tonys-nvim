@@ -1,0 +1,18 @@
+{
+  "C Test (GWT)": {
+    "prefix": "test",
+    "body": [
+      "#include <assert.h>",
+      "",
+      "static void test_${1:테스트코드명}(void) {",
+      "    // GIVEN",
+      "    $2",
+      "    // WHEN",
+      "    $3",
+      "    // THEN",
+      "    assert(0 && \"Should be implemented\");",
+      "}"
+    ],
+    "description": "C assert.h test function with GIVEN/WHEN/THEN"
+  }
+}

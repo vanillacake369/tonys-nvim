@@ -1,0 +1,18 @@
+{
+  "Go Test (GWT)": {
+    "prefix": "test",
+    "body": [
+      "func Test${1:기능명}(t *testing.T) {",
+      "\tt.Run(\"${2:테스트코드명}\", func(t *testing.T) {",
+      "\t\t// GIVEN",
+      "\t\t$3",
+      "\t\t// WHEN",
+      "\t\t$4",
+      "\t\t// THEN",
+      "\t\tt.Fatal(\"Should be implemented\")",
+      "\t})",
+      "}"
+    ],
+    "description": "Go testing.T with subtest and GIVEN/WHEN/THEN"
+  }
+}
