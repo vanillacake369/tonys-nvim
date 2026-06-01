@@ -21,11 +21,45 @@ local function read_file(path)
 end
 
 -- Java & Gradle specific detection
+local function get_gradle_root_from(dir)
+    return find_upward({ "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "gradlew" }, dir)
+end
+
 local function get_gradle_root()
-    return find_upward(
-        { "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "gradlew" },
-        get_buf_dir()
-    )
+    return get_gradle_root_from(get_buf_dir())
+end
+
+-- Find the Java test buffer the user invoked OverseerRun from. The Snacks
+-- picker shifts focus before overseer's builder runs, so we can't rely on the
+-- "current" window/buffer at builder time. Still in use by the
+-- `Gradle: Test (Current Class)` template; per-method runs moved to neotest.
+local function find_java_test_window()
+    local function as_target(bufnr)
+        if not bufnr or bufnr <= 0 then
+            return nil
+        end
+        local name = vim.api.nvim_buf_get_name(bufnr)
+        if not name:match("/src/test/java/.*%.java$") then
+            return nil
+        end
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+            if vim.api.nvim_win_get_buf(win) == bufnr then
+                return { bufnr = bufnr, win = win, file = name }
+            end
+        end
+        return nil
+    end
+    return as_target(vim.api.nvim_get_current_buf())
+        or as_target(vim.fn.bufnr("#"))
+        or (function()
+            for _, win in ipairs(vim.api.nvim_list_wins()) do
+                local t = as_target(vim.api.nvim_win_get_buf(win))
+                if t then
+                    return t
+                end
+            end
+            return nil
+        end)()
 end
 
 local function is_spring_project(root)
@@ -72,6 +106,56 @@ local function default_components()
     }
 end
 
+-- For Gradle test runs:
+--   • `open_output` re-pops the output panel on failure so the assertion
+--     message + stack trace are visible the moment the task ends.
+--   • `on_output_quickfix` parses `    at pkg.Class.m(File.java:42)` lines
+--     into the quickfix list + LSP-style diagnostics (best-effort file
+--     resolution against the project root). `:copen` to navigate.
+--   • On failure, chain-open the Gradle HTML report — the canonical
+--     IDE-style view with expected vs actual and clickable stack frames.
+local OPENER = (vim.uv or vim.loop).os_uname().sysname == "Darwin" and "open" or "xdg-open"
+
+local function gradle_test_components(root)
+    return {
+        {
+            "open_output",
+            direction = "float",
+            on_start = "always",
+            on_complete = "failure",
+            focus = true,
+        },
+        {
+            "on_output_quickfix",
+            errorformat = "%.%#at %m(%f:%l),%-G%.%#",
+            set_diagnostics = true,
+            open_on_match = true,
+            relative_file_root = root,
+        },
+        "on_result_diagnostics",
+        "default",
+    }
+end
+
+-- Wrap a Gradle `cmd` list so that on non-zero exit the HTML test report is
+-- opened in the system browser. Exit code is preserved so overseer marks the
+-- task FAILURE correctly.
+local function with_report_on_failure(root, cmd)
+    local quoted = {}
+    for _, a in ipairs(cmd) do
+        table.insert(quoted, vim.fn.shellescape(a))
+    end
+    local report = root .. "/build/reports/tests/test/index.html"
+    local script = string.format(
+        "%s; rc=$?; if [ $rc -ne 0 ] && [ -f %s ]; then %s %s >/dev/null 2>&1 & fi; exit $rc",
+        table.concat(quoted, " "),
+        vim.fn.shellescape(report),
+        OPENER,
+        vim.fn.shellescape(report)
+    )
+    return { "sh", "-c", script }
+end
+
 local run_cmds = {
     go = { "go", "run" },
     python = { "python" },
@@ -101,51 +185,75 @@ local templates = {
         end,
         condition = { filetype = vim.tbl_keys(run_cmds) },
     },
+    -- overseer.SearchCondition only honors `filetype` and `dir` — any
+    -- `condition.callback` is silently ignored. Defensive checks therefore live
+    -- in `builder` and error out clearly when prerequisites are missing.
     {
         name = "Java: Compile & Run (Single File)",
         builder = function()
             local file = get_buf_file()
+            if get_gradle_root() then
+                error("This project uses Gradle; use a Gradle template.")
+            end
             local cp, main = get_java_classpath_root(file), get_java_main_class(file)
             return {
                 cmd = { "sh", "-c", string.format("javac %s && java -cp %s %s", file, cp, main) },
                 components = default_components(),
             }
         end,
-        condition = {
-            filetype = { "java" },
-            callback = function()
-                return not get_gradle_root()
-            end,
-        },
+        condition = { filetype = { "java" } },
     },
     {
         name = "Gradle: Build",
         builder = function()
-            local root = get_gradle_root()
+            local root = assert(get_gradle_root(), "no Gradle root for current buffer")
             return { cmd = gradle_cmd(root, "build"), cwd = root, components = default_components() }
         end,
-        condition = {
-            filetype = { "java" },
-            callback = function()
-                return get_gradle_root() ~= nil
-            end,
-        },
+        condition = { filetype = { "java" } },
         tags = { "BUILD" },
     },
     {
         name = "Spring Boot: Run",
         builder = function()
-            local root = get_gradle_root()
+            local root = assert(get_gradle_root(), "no Gradle root for current buffer")
+            if not is_spring_project(root) then
+                error("Not a Spring Boot project (no spring-boot in build.gradle).")
+            end
             return { cmd = gradle_cmd(root, "bootRun"), cwd = root, components = default_components() }
         end,
-        condition = {
-            filetype = { "java" },
-            callback = function()
-                local root = get_gradle_root()
-                return root and is_spring_project(root)
-            end,
-        },
+        condition = { filetype = { "java" } },
     },
+    {
+        name = "Gradle: Test",
+        builder = function()
+            local root = assert(get_gradle_root(), "no Gradle root for current buffer")
+            return {
+                cmd = with_report_on_failure(root, gradle_cmd(root, "test")),
+                cwd = root,
+                components = gradle_test_components(root),
+            }
+        end,
+        condition = { filetype = { "java" } },
+    },
+    {
+        name = "Gradle: Test (Current Class)",
+        builder = function()
+            local target = find_java_test_window() or error("open a file under src/test/java/ first")
+            local root = assert(get_gradle_root_from(vim.fn.fnamemodify(target.file, ":h")), "no Gradle root")
+            local fqcn = get_java_main_class(target.file)
+            local raw = gradle_cmd(root, "test")
+            vim.list_extend(raw, { "--tests", fqcn })
+            return {
+                cmd = with_report_on_failure(root, raw),
+                cwd = root,
+                components = gradle_test_components(root),
+            }
+        end,
+        condition = { filetype = { "java" } },
+    },
+    -- Method-level test runs handled by Neotest (see lua/plugins/core/test.lua):
+    -- overseer's API doesn't model per-test execution (no cursor context, no
+    -- gutter signs, no per-test status). neotest-java owns that workflow.
     {
         name = "Cargo: Test",
         builder = function()
