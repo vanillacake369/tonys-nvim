@@ -9,3 +9,8 @@ globals:
     any: true
   _G:
     any: true
+  # Snacks debug helpers exposed as globals via snacks.nvim setup
+  dd:
+    any: true
+  bb:
+    any: true
