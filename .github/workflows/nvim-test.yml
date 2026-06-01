@@ -34,21 +34,24 @@ jobs:
 
       - name: Check for Lua Syntax Errors
         run: |
-          echo "Checking for Lua syntax errors..."
-          find lua -name "*.lua" -type f | while read -r file; do
-            echo "Checking: $file"
-            nvim --headless -u NONE \
-              -c "lua loadfile('$file')()" \
-              -c "qa!" 2>&1 | tee -a syntax-check.log || true
-          done
+          echo "Checking for Lua syntax errors (parse only, no execution)..."
+          fail=0
+          while IFS= read -r file; do
+            err=$(nvim --headless -u NONE \
+              -c "lua local _, e = loadfile('$file'); if e then io.stderr:write(e..'\n'); vim.cmd('cq') end" \
+              -c "qa" 2>&1)
+            if [ -n "$err" ]; then
+              echo "❌ $file"
+              echo "$err"
+              fail=1
+            fi
+          done < <(find lua -name "*.lua" -type f)
 
-          if grep -i "error" syntax-check.log; then
+          if [ $fail -ne 0 ]; then
             echo "❌ Lua syntax errors found!"
-            cat syntax-check.log
             exit 1
-          else
-            echo "✅ No syntax errors found"
           fi
+          echo "✅ No syntax errors found"
 
       - name: Test Plugin Manager
         run: |
