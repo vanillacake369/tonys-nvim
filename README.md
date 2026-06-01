@@ -24,24 +24,56 @@
 
 ## 🚀 빠른 시작
 
+### 사전 요구사항
+
+런타임 의존성 (모든 환경 공통):
+
+- **Neovim ≥ 0.10** — 0.11+ 권장 (vim.lsp.config / willSaveWaitUntil API)
+- **git** — lazy.nvim 부트스트랩과 플러그인 클론
+- **C compiler** (`cc`, gcc 또는 clang) — nvim-treesitter 가 파서를 런타임 컴파일
+
+플랫폼별 설치 예:
+
+```bash
+# macOS
+brew install neovim git
+xcode-select --install  # cc 확보
+
+# Debian/Ubuntu
+sudo apt install neovim git build-essential
+
+# Nix / NixOS
+# tonys-nix(https://github.com/vanillacake369/tonys-nix) 의 home-manager 모듈이
+# nvim + provider + treesitter bundle 까지 한 번에 처리. 이 repo 는 standalone
+# clone 으로도 동작 (non-Nix 사용자는 위 의존성을 수동 설치).
+```
+
 ### 설치
 
 ```bash
-# Neovim 설치 (macOS)
-brew install neovim
-
-# 이 설정을 복제
-git clone <your-repo> ~/.config/nvim
-
-# Neovim 실행 - Lazy.nvim이 자동으로 플러그인 설치
-nvim
+git clone https://github.com/vanillacake369/tonys-nvim ~/.config/nvim
+nvim   # lazy.nvim 이 자동으로 플러그인 설치
 ```
 
 ### 첫 실행
 
-1. Neovim을 시작하면 **lazy.nvim**이 자동으로 모든 플러그인을 설치합니다
-2. 설치가 완료되면 `:checkhealth`로 설정을 검증합니다
-3. 각 LSP 서버는 별도로 설치해야 합니다 (아래 언어 지원 참조)
+1. Neovim 시작 → **lazy.nvim** 이 자동으로 모든 플러그인 설치
+2. nvim-treesitter 가 `ensure_installed` 의 파서 ~30 개를 백그라운드 컴파일
+   (M-시리즈 Mac 기준 3~6 분, 첫 실행만)
+3. `:checkhealth` 로 provider/LSP/treesitter 상태 검증
+4. **각 LSP 서버는 별도로 설치** (아래 언어 지원 참조)
+
+#### Java + Lombok (선택)
+
+Lombok 자동 감지 우선순위:
+
+1. `$LOMBOK_JAR` 환경 변수 (직접 경로 지정, non-Nix 사용자에게 권장)
+2. `$PATH` 의 `lombok` 래퍼 스크립트 (Nix 사용자가 자동 감지되는 경로)
+
+수동 설정 예:
+```bash
+export LOMBOK_JAR=/path/to/lombok.jar
+```
 
 ### 필수 키바인딩
 
