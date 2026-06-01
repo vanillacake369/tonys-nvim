@@ -1,0 +1,16 @@
+{
+  "Pytest (GWT)": {
+    "prefix": "test",
+    "body": [
+      "def test_${1:테스트코드명}() -> None:",
+      "    \"\"\"${2:테스트코드명}\"\"\"",
+      "    # GIVEN",
+      "    $3",
+      "    # WHEN",
+      "    $4",
+      "    # THEN",
+      "    raise NotImplementedError(\"Should be implemented\")"
+    ],
+    "description": "pytest function with GIVEN/WHEN/THEN"
+  }
+}
