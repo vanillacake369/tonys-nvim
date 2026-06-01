@@ -1,0 +1,18 @@
+# https://github.com/crate-ci/typos
+[default]
+extend-ignore-identifiers-re = [
+    "^[A-Fa-f0-9]{7,40}$",  # git short/long SHAs
+]
+
+[default.extend-words]
+# Common code identifiers that typos flags but shouldn't
+nvim = "nvim"
+lsps = "lsps"
+
+[files]
+extend-exclude = [
+    "lazy-lock.json",
+    "*.lock",
+    ".cache/",
+    "**/snapshots/",
+]
