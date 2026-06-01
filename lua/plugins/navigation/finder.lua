@@ -79,13 +79,7 @@ return {
                     Snacks.debug.backtrace()
                 end
 
-                if vim.fn.has("nvim-0.11") == 1 then
-                    vim._print = function(_, ...)
-                        dd(...)
-                    end
-                else
-                    vim.print = _G.dd
-                end
+                vim.print = _G.dd
 
                 -- UI Toggles
                 Snacks.toggle.option("spell", { name = "[UI] Spelling" }):map("<leader>us")
