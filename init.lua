@@ -1,4 +1,1 @@
-require("config.keymaps")
-require("config.options")
-require("config.lazy")
-require("config.clipboard")
+/nix/store/888xw3lwwlkdfb06wlgiy3nl3b8fcly3-home-manager-files/.config/nvim/init.lua
