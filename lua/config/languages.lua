@@ -16,6 +16,8 @@ M.languages = {
         formatters = { "ruff_fix", "ruff_organize_imports", "ruff_format" },
     },
     java = {
+        -- 명시적 filetype: lang_name fallback 우연한 일치에 의존하지 않도록
+        filetypes = { "java" },
         treesitter = {
             "java",
         },
@@ -23,12 +25,13 @@ M.languages = {
         -- google-java-format 사용할 수 있으나
         -- method chaining 에 대해 new line 설정을
         -- 처리할 수 없어서 clang-format 으로 우회
-        formatters = { "clang-format" },
+        -- (별칭 clang-format-java: c_cpp 와 옵션 충돌 방지)
+        formatters = { "clang-format-java" },
     },
     c_cpp = {
         lsp_server = "clangd",
         lsp_opts = {
-            cmd = { "clangd" },
+            cmd = { "clangd", "--query-driver=/nix/store/*/bin/clang,/nix/store/*/bin/cc" },
             filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
         },
         treesitter = {
@@ -226,12 +229,16 @@ M.languages = {
             cmd = { "docker-compose-langserver", "--stdio" },
             filetypes = { "yaml.docker-compose" },
         },
+        -- hadolint 은 Dockerfile 대상이므로 lsp_opts.filetypes 와 별도 지정
+        filetypes = { "dockerfile" },
         treesitter = {
             "dockerfile",
         },
         linters = { "hadolint" },
     },
     helm = {
+        -- nvim 기본에 helm filetype 이 없어 명시적으로 매핑
+        filetypes = { "helm" },
         treesitter = {
             "helm",
         },
@@ -267,8 +274,11 @@ local function collect_config(key, is_list)
                     end
                 end
             else
-                -- filetype별 매핑: lsp_opts.filetypes 우선, 없으면 lang_name 사용
-                local fts = (config.lsp_opts and config.lsp_opts.filetypes) or { lang_name }
+                -- filetype 매핑 우선순위:
+                --   1) config.filetypes (linter/formatter 가 lsp filetypes 와 다를 때)
+                --   2) config.lsp_opts.filetypes
+                --   3) lang_name (fallback)
+                local fts = config.filetypes or (config.lsp_opts and config.lsp_opts.filetypes) or { lang_name }
                 for _, ft in ipairs(fts) do
                     result[ft] = data
                 end
@@ -302,17 +312,6 @@ end
 -- 4. Formatters: { [filetype] = { fmt1, ... } } 매핑 반환
 function M.collect_formatters()
     return collect_config("formatters", false)
-end
-
--- 5. Formatters Options: 모든 언어의 포맷터 옵션을 하나의 테이블로 병합하여 반환
-function M.collect_formatters_opts()
-    local opts = {}
-    for _, config in pairs(M.languages) do
-        if config.formatters_opts then
-            opts = vim.tbl_deep_extend("force", opts, config.formatters_opts)
-        end
-    end
-    return opts
 end
 
 return M
