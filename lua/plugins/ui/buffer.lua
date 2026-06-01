@@ -6,7 +6,9 @@ return {
     end,
     opts = function(_, opts)
         opts.options = vim.tbl_deep_extend("force", opts.options or {}, {
-            close_command = function(n) Snacks.bufdelete(n) end,
+            close_command = function(n)
+                Snacks.bufdelete(n)
+            end,
             diagnostics = "nvim_lsp",
             offsets = {
                 {
