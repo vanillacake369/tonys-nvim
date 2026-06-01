@@ -314,7 +314,7 @@ return {
                 border = "rounded",
                 width = 0.5,
                 height = 0.4,
-                seperator = "|",
+                separator = "|",
                 newFileIndicator = "(new)",
             },
         },
