@@ -11,21 +11,32 @@ return {
         -- 모든 언어에 공통으로 적용될 기본 포맷터 설정
         -- (예: 코드 블록 내 주입된 코드 포맷팅)
         local indent = 4
-        local columLimit = 85
+        local columnLimit = 85
+
+        -- Java clang-format style 공통 문자열
+        -- (args 와 range_args 양쪽에서 재사용되므로 변수로 추출)
+        local java_style = "{ "
+            .. "BasedOnStyle: Google, "
+            .. "Language: Java, "
+            .. "IndentWidth: "
+            .. indent
+            .. ", "
+            .. "ColumnLimit: "
+            .. columnLimit
+            .. ", "
+            .. "ContinuationIndentWidth: "
+            .. indent
+            .. ", "
+            .. "BinPackParameters: false, "
+            .. "BinPackArguments: false, "
+            .. "AlignAfterOpenBracket: Align, "
+            .. "AllowAllParametersOfDeclarationOnNextLine: false, "
+            .. "AlwaysBreakAfterReturnType: None, "
+            .. "ReflowComments: Never"
+            .. " }"
         local default_formatters = {
             injected = {
                 options = { ignore_errors = true },
-            },
-            -- Java: google-java-format
-            -- aosp: 4칸 들여쓰기
-            -- skip-reflow-long-strings: 긴 문자열 자동 줄바꿈 방지
-            -- skip-javadoc-formatting: JavaDoc 주석 포맷팅 방해 최소화
-            ["google-java-format"] = {
-                prepend_args = {
-                    "--aosp",
-                    "--skip-reflow-long-strings",
-                    "--skip-javadoc-formatting",
-                },
             },
             -- Yaml: yamlfmt
             -- retain_line_breaks_single -- 빈 줄 하나는 무조건 유지
@@ -57,25 +68,7 @@ return {
                     "-formatter",
                     "indent=" .. indent,
                     "-formatter",
-                    "width=" .. columLimit,
-                },
-            },
-            -- Toml: taplo
-            -- align_entries: = 기호를 정렬하여 가독성 폭발적 향상
-            -- reorder_keys: 키 순서 자동 정렬
-            -- separate_sections: 섹션 간 빈 줄 강제
-            ["taplo"] = {
-                args = {
-                    "format",
-                    "-",
-                    "--option",
-                    "align_entries=true",
-                    "--option",
-                    "reorder_keys=true",
-                    "--option",
-                    "compact_arrays=false",
-                    "--option",
-                    "separate_sections=true",
+                    "width=" .. columnLimit,
                 },
             },
             -- Lua: stylua
@@ -100,44 +93,44 @@ return {
                     "all",
                 },
             },
-            -- C/C++: clang-format
-            ["clang-format"] = {
-                prepend_args = {
+            -- Java: clang-format 우회 (별칭으로 분리해 c_cpp 와 옵션 격리)
+            -- ReflowComments: Never 는 {@link Type#method(...)} 같은 JavaDoc 인라인 태그가
+            -- ColumnLimit 을 넘어도 줄바꿈/축약하지 않도록 보호하는 핵심 옵션.
+            -- NOTE: clang-format-java 는 conform 빌트인이 아니므로 prepend_args 가 병합되지
+            -- 않는다. --style 옵션을 args 배열 안에 직접 포함해야 한다.
+            -- inherit=false: 동명의 builtin 이 없으므로 매 호출마다 발생하는 pcall lookup 제거.
+            -- range_args: visual-mode 부분 포맷이 전체 버퍼 reformat → diff trim 으로 fallback
+            -- 되지 않도록 --offset/--length 직접 전달.
+            ["clang-format-java"] = {
+                inherit = false,
+                command = "clang-format",
+                args = {
                     "--style",
-                    "{ "
-                        .. "BasedOnStyle: Google, "
-                        .. "IndentWidth: "
-                        .. indent
-                        .. ", "
-                        .. "ColumnLimit: "
-                        .. columLimit
-                        .. ", "
-                        .. "ContinuationIndentWidth: "
-                        .. indent
-                        .. ", "
-                        .. "BinPackParameters: false, "
-                        .. "BinPackArguments: false, "
-                        .. "AlignAfterOpenBracket: Align,"
-                        .. "AllowAllParametersOfDeclarationOnNextLine: true, "
-                        .. "AlwaysBreakAfterReturnType: None, "
-                        .. "AlwaysBreakAfterDefinitionReturnType: None, "
-                        .. "DerivePointerAlignment: false, "
-                        .. "Language: Java"
-                        .. " }",
+                    java_style,
+                    "-assume-filename",
+                    "$FILENAME",
                 },
+                range_args = function(_, ctx)
+                    local util = require("conform.util")
+                    local start_offset, end_offset = util.get_offsets_from_range(ctx.buf, ctx.range)
+                    return {
+                        "--style",
+                        java_style,
+                        "-assume-filename",
+                        "$FILENAME",
+                        "--offset",
+                        tostring(start_offset),
+                        "--length",
+                        tostring(end_offset - start_offset),
+                    }
+                end,
+                stdin = true,
             },
             -- Sh/Bash: shfmt
             ["shfmt"] = {
                 prepend_args = { "-i", tostring(indent) },
             },
         }
-
-        -- languages.lua에서 정의한 언어별 특화 옵션 수집 (SSOT 원칙 준수)
-        -- 예: Java의 경우 google-java-format에 --aosp 옵션 주입 등
-        local custom_formatters = lang.collect_formatters_opts and lang.collect_formatters_opts() or {}
-
-        -- 기본 설정과 사용자 설정을 병합 (동일한 포맷터 이름이 있을 경우 사용자 설정이 우선됨)
-        local final_formatters = vim.tbl_deep_extend("force", default_formatters, custom_formatters)
 
         return {
             notify_on_error = true,
@@ -147,15 +140,18 @@ return {
                 quiet = false,
                 lsp_format = "never",
             },
+            -- sync 포맷터: 저장 전 실행 → 디스크 write 1회, 외부 file watcher 안전
+            -- (format_after_save 는 async 지만 디스크에 두 번 쓰여 webpack/esbuild 등
+            --  외부 watcher 가 더블 트리거됨)
             format_on_save = {
-                timeout_ms = 700,
+                -- 2500ms: ruff_fix + ruff_organize_imports + ruff_format 체인 마진 확보
+                timeout_ms = 2500,
                 lsp_format = "never",
             },
             -- 파일 타입별 포맷터 매핑을 languages.lua에서 자동으로 가져옴
             formatters_by_ft = lang.collect_formatters(),
 
-            -- 병합된 최종 포맷터 상세 설정을 적용
-            formatters = final_formatters,
+            formatters = default_formatters,
         }
     end,
 }
