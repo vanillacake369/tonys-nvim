@@ -1,0 +1,18 @@
+{
+  "JUnit5 Test (GWT)": {
+    "prefix": "test",
+    "body": [
+      "@Test",
+      "@DisplayName(\"${1:테스트코드명}\")",
+      "void ${2:테스트코드명}() {",
+      "    // GIVEN",
+      "    $3",
+      "    // WHEN",
+      "    $4",
+      "    // THEN",
+      "    fail(\"Should be implemented\");",
+      "}"
+    ],
+    "description": "JUnit5 @Test + @DisplayName with GIVEN/WHEN/THEN"
+  }
+}

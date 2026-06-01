@@ -1,0 +1,17 @@
+{
+  "Rust Test (GWT)": {
+    "prefix": "test",
+    "body": [
+      "#[test]",
+      "fn ${1:테스트코드명}() {",
+      "    // GIVEN",
+      "    $2",
+      "    // WHEN",
+      "    $3",
+      "    // THEN",
+      "    unimplemented!(\"Should be implemented\");",
+      "}"
+    ],
+    "description": "Rust #[test] with GIVEN/WHEN/THEN"
+  }
+}
