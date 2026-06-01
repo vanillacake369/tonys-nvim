@@ -1,7 +1,7 @@
 return {
     "rmagatti/auto-session",
     lazy = false,
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    dependencies = {},
     config = function()
         require("auto-session").setup({
             suppressed_dirs = { "~/", "~/Projects", "~/Downloads", "/" },
