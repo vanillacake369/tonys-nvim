@@ -212,7 +212,13 @@ return {
                     vim.lsp.config(server, final_config)
                     vim.lsp.enable(server)
                 else
-                    vim.notify(string.format("LSP '%s' not found. Install via nix.", cmd), vim.log.levels.ERROR)
+                    vim.notify(
+                        string.format(
+                            "LSP '%s' not found in PATH. Install it via your package manager (nix, brew, apt, etc.).",
+                            cmd
+                        ),
+                        vim.log.levels.ERROR
+                    )
                 end
             end
         end,
@@ -242,6 +248,7 @@ return {
                 local lombok_jar = get_lombok_jar()
                 local cmd = { "jdtls", "-data", workspace_dir }
                 table.insert(cmd, "--jvm-arg=-Dfile.encoding=UTF-8")
+                table.insert(cmd, "--jvm-arg=-Dorg.gradle.daemon.idletimeout=300000")
                 if lombok_jar then
                     table.insert(cmd, "--jvm-arg=-javaagent:" .. lombok_jar)
                 end
