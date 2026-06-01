@@ -31,7 +31,13 @@ M.languages = {
     c_cpp = {
         lsp_server = "clangd",
         lsp_opts = {
-            cmd = { "clangd", "--query-driver=/nix/store/*/bin/clang,/nix/store/*/bin/cc" },
+            -- query-driver glob: 정규식이 너무 넓으면 Nix store 전체 트리를 스캔해
+            -- 첫 응답이 지연됨. *-clang-* / *-gcc-* 로 좁혀 검색 범위 축소.
+            -- nix-darwin 에서는 Nix-provided cc wrapper 가 없을 수 있어 /usr/bin/clang fallback.
+            cmd = {
+                "clangd",
+                "--query-driver=/nix/store/*-clang-*/bin/clang,/nix/store/*-gcc-*/bin/cc,/usr/bin/clang",
+            },
             filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
         },
         treesitter = {
@@ -119,10 +125,12 @@ M.languages = {
             filetypes = { "nix" },
             settings = {
                 nixd = {
-                    -- This expression will be interpreted as "nixpkgs" toplevel
-                    -- Nixd provides package, lib completion/information from it.
+                    -- nixd 가 "nixpkgs" toplevel 로 해석할 표현식.
+                    -- 이전엔 `getFlake(toString ./.)` 로 CWD 가 flake root 라고 가정 → non-flake silent fail.
+                    -- `<nixpkgs>` 도 NIX_PATH 의존 → macOS Spotlight/Launcher 로 nvim 실행 시 NIX_PATH 비어 fail.
+                    -- 글로벌 flake registry (home-manager 가 pin) 경유가 모든 launch context 에서 안전.
                     nixpkgs = {
-                        expr = "import (builtins.getFlake(toString ./.)).inputs.nixpkgs { }",
+                        expr = 'import (builtins.getFlake "nixpkgs") { }',
                     },
                     diagnostic = {
                         suppress = { "shadowing" },

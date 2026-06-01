@@ -163,8 +163,17 @@ return {
                     local attached_client_id = attach_args.data and attach_args.data.client_id or nil
 
                     -- Organize Imports & Fix All on Save (Universal LSP-based)
+                    -- 버퍼+클라이언트별 augroup + clear=true:
+                    -- (1) 동일 버퍼+클라이언트가 재부착될 때 (jdtls 재시작 등)
+                    --     BufWritePre 가 스택되는 것을 방지.
+                    -- (2) 동일 버퍼에 여러 LSP 가 동시 부착될 때
+                    --     서로의 handler 를 wipe 하지 않도록 client_id 까지 namespace 분리.
                     vim.api.nvim_create_autocmd("BufWritePre", {
                         buffer = attach_args.buf,
+                        group = vim.api.nvim_create_augroup(
+                            "LspSaveActions_buf" .. attach_args.buf .. "_client" .. tostring(attached_client_id or 0),
+                            { clear = true }
+                        ),
                         callback = function(write_args)
                             run_lsp_save_actions(write_args.buf, attached_client_id)
                         end,
@@ -176,9 +185,11 @@ return {
             vim.api.nvim_create_autocmd("VimLeavePre", {
                 group = vim.api.nvim_create_augroup("CleanupNixd", { clear = true }),
                 callback = function()
-                    -- nixd와 그 자식 프로세스들을 모두 종료
-                    os.execute("pkill -9 nixd")
-                    os.execute("pkill -9 nixd-attrset-eval")
+                    -- nixd 와 자식 프로세스 graceful 종료 (SIGTERM).
+                    -- SIGKILL(-9) 은 nixd 의 nix daemon evaluation cache 가
+                    -- 플러시되지 못해 증분 평가 캐시가 손상될 수 있음.
+                    os.execute("pkill -15 nixd")
+                    os.execute("pkill -15 nixd-attrset-eval")
                 end,
             })
 
@@ -276,6 +287,10 @@ return {
                                 organizeImports = {
                                     starThreshold = 9999,
                                     staticStarThreshold = 9999,
+                                    -- Eclipse JDT 의 일반적인 그룹 순서.
+                                    -- Spring/Checkstyle 등 프로젝트별 규칙이 있으면
+                                    -- .editorconfig 나 jdt.core.prefs 로 override.
+                                    importOrder = { "java", "javax", "org", "com" },
                                 },
                             },
                             configuration = {
