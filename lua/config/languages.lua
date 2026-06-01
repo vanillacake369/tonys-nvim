@@ -31,12 +31,15 @@ M.languages = {
     c_cpp = {
         lsp_server = "clangd",
         lsp_opts = {
-            -- query-driver glob: 정규식이 너무 넓으면 Nix store 전체 트리를 스캔해
-            -- 첫 응답이 지연됨. *-clang-* / *-gcc-* 로 좁혀 검색 범위 축소.
-            -- nix-darwin 에서는 Nix-provided cc wrapper 가 없을 수 있어 /usr/bin/clang fallback.
+            -- query-driver: clangd 가 시스템 컴파일러를 신뢰하도록 whitelist 한 경로.
+            -- 순서는 우선순위 아님 — 매칭되는 모든 항목을 허용.
+            -- Nix: *-clang-* / *-gcc-* 로 좁혀 store 전체 트리 스캔 회피.
+            -- macOS Xcode CLT: /usr/bin/clang
+            -- macOS Homebrew (Apple Silicon): /opt/homebrew/bin/{clang,gcc}
+            -- 비-Nix Linux: /usr/bin/gcc, /usr/local/bin/gcc
             cmd = {
                 "clangd",
-                "--query-driver=/nix/store/*-clang-*/bin/clang,/nix/store/*-gcc-*/bin/cc,/usr/bin/clang",
+                "--query-driver=/nix/store/*-clang-*/bin/clang,/nix/store/*-gcc-*/bin/cc,/usr/bin/clang,/opt/homebrew/bin/clang,/opt/homebrew/bin/gcc,/usr/bin/gcc,/usr/local/bin/gcc",
             },
             filetypes = { "c", "cpp", "objc", "objcpp", "cuda", "proto" },
         },
