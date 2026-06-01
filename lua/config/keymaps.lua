@@ -129,8 +129,24 @@ M.definitions = {
             function()
                 require("conform").format({ async = true, lsp_format = "never" })
             end,
-            desc = "Format Code",
-            mode = { "n", "v" },
+            desc = "Format Code (buffer)",
+            mode = "n",
+        },
+        {
+            "<leader>cf",
+            function()
+                -- 시각 선택 종료 후 '< / '> 마크가 갱신되므로 그 값을 range 로 전달
+                require("conform").format({
+                    async = true,
+                    lsp_format = "never",
+                    range = {
+                        start = vim.api.nvim_buf_get_mark(0, "<"),
+                        ["end"] = vim.api.nvim_buf_get_mark(0, ">"),
+                    },
+                })
+            end,
+            desc = "Format Code (range)",
+            mode = "v",
         },
         {
             "<leader>cr",
@@ -443,39 +459,112 @@ M.definitions = {
         },
     },
 
-    -- ToDo Comment View (Snacks)
+    -- ToDo Comment View — uses TodoTrouble (respects .gitignore, skips build/
+    -- node_modules/.git automatically). Previous `vimgrep ... **/*` recursed
+    -- into generated artifacts and stalled on Gradle/JS projects.
     todo = {
         name = "+Todo",
-        prefix = "<leader>t",
+        prefix = "<leader>o",
         {
-            "<leader>tt",
-            function()
-                vim.cmd("vimgrep /TODO\\|FIXME\\|HACK\\|NOTE/j **/*")
-                Snacks.picker.qflist()
-            end,
-            desc = "Todo List (Telescope)",
+            "<leader>oo",
+            "<cmd>TodoTrouble<cr>",
+            desc = "Todo List (Trouble)",
         },
         {
-            "<leader>tw",
+            "<leader>on",
             function()
                 require("todo-comments").jump_next()
             end,
             desc = "Next Todo Comment",
         },
         {
-            "<leader>tb",
+            "<leader>op",
             function()
                 require("todo-comments").jump_prev()
             end,
             desc = "Previous Todo Comment",
         },
         {
+            "<leader>of",
+            "<cmd>TodoTrouble cwd=%:p:h<cr>",
+            desc = "Todo Current File",
+        },
+    },
+
+    -- Test (Neotest)
+    test = {
+        name = "+Test",
+        prefix = "<leader>t",
+        {
+            "<leader>tt",
+            function()
+                require("neotest").run.run()
+            end,
+            desc = "Run Nearest Test",
+        },
+        {
             "<leader>tf",
             function()
-                vim.cmd("vimgrep /TODO\\|FIXME\\|HACK\\|NOTE/j %")
-                Snacks.picker.qflist()
+                require("neotest").run.run(vim.fn.expand("%"))
             end,
-            desc = "Todo Current File",
+            desc = "Run File",
+        },
+        {
+            "<leader>tl",
+            function()
+                require("neotest").run.run_last()
+            end,
+            desc = "Run Last",
+        },
+        {
+            "<leader>ts",
+            function()
+                require("neotest").summary.toggle()
+            end,
+            desc = "Toggle Summary",
+        },
+        {
+            "<leader>to",
+            function()
+                require("neotest").output.open({ enter = true, auto_close = true })
+            end,
+            desc = "Open Output",
+        },
+        {
+            "<leader>tO",
+            function()
+                require("neotest").output_panel.toggle()
+            end,
+            desc = "Toggle Output Panel",
+        },
+        {
+            "<leader>tw",
+            function()
+                require("neotest").watch.toggle(vim.fn.expand("%"))
+            end,
+            desc = "Toggle Watch (File)",
+        },
+        {
+            "<leader>tT",
+            function()
+                require("neotest").run.stop()
+            end,
+            desc = "Stop",
+        },
+        -- `<leader>td` (Debug Nearest via DAP) intentionally absent.
+        -- Java DAP requires jdtls bundles (java-debug + vscode-java-test JARs)
+        -- which aren't yet provisioned. Wire those up in lsp.lua + debugger.lua
+        -- before exposing a DAP keymap that would silently fail for Java.
+        {
+            "<leader>ta",
+            function()
+                (_G.__alternate or {
+                    jump = function()
+                        vim.cmd("Other")
+                    end,
+                }).jump()
+            end,
+            desc = "Test Alternate (Jump or Create)",
         },
     },
 
@@ -484,6 +573,83 @@ M.definitions = {
         name = "+Align",
         prefix = "<leader>a",
         { "<leader>a", "<Plug>(EasyAlign)", desc = "Align Text", mode = { "n", "x" } },
+    },
+
+    -- Harpoon (file bookmarks)
+    harpoon = {
+        name = "+Harpoon",
+        prefix = "<leader>h",
+        {
+            "<leader>ha",
+            function()
+                require("harpoon"):list():add()
+            end,
+            desc = "Add Mark",
+        },
+        {
+            "<leader>hh",
+            function()
+                local h = require("harpoon")
+                h.ui:toggle_quick_menu(h:list())
+            end,
+            desc = "Toggle Quick Menu",
+        },
+        {
+            "<leader>hn",
+            function()
+                require("harpoon"):list():next()
+            end,
+            desc = "Next Mark",
+        },
+        {
+            "<leader>hp",
+            function()
+                require("harpoon"):list():prev()
+            end,
+            desc = "Prev Mark",
+        },
+        {
+            "<leader>hr",
+            function()
+                require("harpoon"):list():remove()
+            end,
+            desc = "Remove Current Mark",
+        },
+        {
+            "<leader>hc",
+            function()
+                require("harpoon"):list():clear()
+            end,
+            desc = "Clear All Marks",
+        },
+        {
+            "<M-1>",
+            function()
+                require("harpoon"):list():select(1)
+            end,
+            desc = "Jump to Mark 1",
+        },
+        {
+            "<M-2>",
+            function()
+                require("harpoon"):list():select(2)
+            end,
+            desc = "Jump to Mark 2",
+        },
+        {
+            "<M-3>",
+            function()
+                require("harpoon"):list():select(3)
+            end,
+            desc = "Jump to Mark 3",
+        },
+        {
+            "<M-4>",
+            function()
+                require("harpoon"):list():select(4)
+            end,
+            desc = "Jump to Mark 4",
+        },
     },
 
     -- Terminal
