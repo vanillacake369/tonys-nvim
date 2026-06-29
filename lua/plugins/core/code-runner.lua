@@ -157,6 +157,7 @@ local function with_report_on_failure(root, cmd)
 end
 
 local run_cmds = {
+    c = { "cc" },
     go = { "go", "run" },
     python = { "python" },
     lua = { "lua" },
@@ -166,6 +167,14 @@ local run_cmds = {
     typescript = { "npx", "ts-node" },
     rust = { "cargo", "run" },
 }
+
+local function shell_join(cmd)
+    local quoted = {}
+    for _, arg in ipairs(cmd) do
+        table.insert(quoted, vim.fn.shellescape(arg))
+    end
+    return table.concat(quoted, " ")
+end
 
 local function gradle_cmd(root, task)
     return (vim.fn.filereadable(root .. "/gradlew") == 1) and { "./gradlew", task } or { "gradle", task }
@@ -178,8 +187,31 @@ local templates = {
             local file, ft = get_buf_file(), vim.bo.filetype
             local cmd = run_cmds[ft] and vim.list_extend({ unpack(run_cmds[ft]) }, { file }) or { file }
             if ft == "c" then
-                local out = vim.fn.expand("%:p:r")
-                cmd = { "sh", "-c", string.format("gcc %s -o %s && %s", file, out, out) }
+                local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
+                cmd = {
+                    "sh",
+                    "-c",
+                    string.format(
+                        "trap %s EXIT; cc %s -o %s && %s",
+                        vim.fn.shellescape("rm -f " .. out),
+                        vim.fn.shellescape(file),
+                        vim.fn.shellescape(out),
+                        vim.fn.shellescape(out)
+                    ),
+                }
+            elseif ft == "rust" then
+                local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
+                cmd = {
+                    "sh",
+                    "-c",
+                    string.format(
+                        "trap %s EXIT; rustc %s -o %s && %s",
+                        vim.fn.shellescape("rm -f " .. out),
+                        vim.fn.shellescape(file),
+                        vim.fn.shellescape(out),
+                        vim.fn.shellescape(out)
+                    ),
+                }
             end
             return { cmd = cmd, components = default_components() }
         end,
@@ -197,7 +229,7 @@ local templates = {
             end
             local cp, main = get_java_classpath_root(file), get_java_main_class(file)
             return {
-                cmd = { "sh", "-c", string.format("javac %s && java -cp %s %s", file, cp, main) },
+                cmd = { "sh", "-c", shell_join({ "javac", file }) .. " && " .. shell_join({ "java", "-cp", cp, main }) },
                 components = default_components(),
             }
         end,
