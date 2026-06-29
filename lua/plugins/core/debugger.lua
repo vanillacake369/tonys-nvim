@@ -1,7 +1,13 @@
 return {
     {
         "mfussenegger/nvim-dap",
-        lazy = true,
+        keys = function()
+            return require("config.keymaps").get_keys("debug")
+        end,
+        dependencies = {
+            "nvim-neotest/nvim-nio",
+            "rcarriga/nvim-dap-ui",
+        },
         config = function()
             local dap = require("dap")
 
@@ -44,17 +50,10 @@ return {
                     program = "${file}",
                 },
             }
-        end,
-    },
-    {
-        "rcarriga/nvim-dap-ui",
-        lazy = true,
-        dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
-        config = function()
+
             local dapui = require("dapui")
             dapui.setup()
 
-            local dap = require("dap")
             dap.listeners.after.event_initialized["dapui_config"] = function()
                 dapui.open()
             end
