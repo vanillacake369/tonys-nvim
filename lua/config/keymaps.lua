@@ -683,9 +683,9 @@ M.definitions = {
         {
             "<leader>wz",
             function()
-                Snacks.toggle.zoom()
+                require("plugins.core.support.window").toggle_fullscreen()
             end,
-            desc = "Toggle Zoom",
+            desc = "Toggle Fullscreen",
         },
         {
             "<leader>w-",
