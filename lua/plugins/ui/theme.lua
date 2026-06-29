@@ -40,9 +40,19 @@ return {
                 sections = {
                     lualine_a = { "mode" }, -- 모드(INSERT/NORMAL)만 표시
                     lualine_b = {}, -- git branch 제거
+                    lualine_c = { "harpoon2" },
                     lualine_y = {}, -- progress(5%) 제거
                 },
             })
         end,
+    },
+    {
+        "letieu/harpoon-lualine",
+        dependencies = {
+            {
+                "ThePrimeagen/harpoon",
+                branch = "harpoon2",
+            },
+        },
     },
 }
