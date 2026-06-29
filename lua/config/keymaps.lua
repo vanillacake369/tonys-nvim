@@ -159,12 +159,7 @@ M.definitions = {
         {
             "<leader>ca",
             function()
-                local clients = vim.lsp.get_clients({ bufnr = 0, name = "jdtls" })
-                if #clients > 0 then
-                    vim.lsp.buf.code_action()
-                else
-                    require("tiny-code-action").code_action()
-                end
+                require("plugins.core.lsp-code-action").smart_code_action()
             end,
             desc = "Code Actions",
             mode = { "n", "v" },

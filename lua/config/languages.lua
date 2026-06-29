@@ -185,6 +185,18 @@ M.languages = {
         linters = { "shellcheck" },
         formatters = { "shfmt" },
     },
+    rust = {
+        treesitter = {
+            "rust",
+            "ron",
+        },
+        -- Rust ecosystem standard: rustaceanvim.
+        -- It handles LSP (rust-analyzer), clippy (on save), and formatting (rustfmt)
+        -- natively. Adding them to 'linters' or 'formatters' here would cause
+        -- redundant external process calls and potential conflicts.
+        linters = {},
+        formatters = {},
+    },
     just = {
         lsp_server = "just_lsp",
         lsp_opts = {
