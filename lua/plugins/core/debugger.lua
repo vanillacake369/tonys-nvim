@@ -11,6 +11,17 @@ return {
         config = function()
             local dap = require("dap")
 
+            local function find_upward(names, start_path)
+                local found = vim.fs.find(names, { path = start_path, upward = true, limit = 1 })[1]
+                return found and vim.fs.dirname(found) or nil
+            end
+
+            local function get_cargo_root()
+                local file = vim.api.nvim_buf_get_name(0)
+                local dir = file ~= "" and vim.fs.dirname(file) or vim.uv.cwd()
+                return find_upward({ "Cargo.toml" }, dir) or vim.uv.cwd()
+            end
+
             -- Go (delve)
             dap.adapters.delve = {
                 type = "server",
@@ -33,6 +44,28 @@ return {
                     request = "launch",
                     mode = "test",
                     program = "${file}",
+                },
+            }
+
+            -- Rust / C / C++ (lldb-dap)
+            dap.adapters.lldb = {
+                type = "executable",
+                command = "lldb-dap",
+                name = "lldb",
+            }
+            dap.configurations.rust = {
+                {
+                    type = "lldb",
+                    name = "Debug executable",
+                    request = "launch",
+                    program = function()
+                        return vim.fn.input("Path to executable: ", get_cargo_root() .. "/target/debug/", "file")
+                    end,
+                    cwd = function()
+                        return get_cargo_root()
+                    end,
+                    stopOnEntry = false,
+                    args = {},
                 },
             }
 

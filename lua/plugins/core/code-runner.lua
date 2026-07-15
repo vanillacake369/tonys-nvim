@@ -29,6 +29,21 @@ local function get_gradle_root()
     return get_gradle_root_from(get_buf_dir())
 end
 
+-- Rust / Cargo detection
+local function get_cargo_root_from(dir)
+    return find_upward({ "Cargo.toml" }, dir)
+end
+
+local function get_cargo_root()
+    return get_cargo_root_from(get_buf_dir())
+end
+
+local function require_executable(name)
+    if vim.fn.executable(name) ~= 1 then
+        error(name .. " not found on PATH; enter nix develop or install the tool for this project.")
+    end
+end
+
 -- Find the Java test buffer the user invoked OverseerRun from. The Snacks
 -- picker shifts focus before overseer's builder runs, so we can't rely on the
 -- "current" window/buffer at builder time. Still in use by the
@@ -186,6 +201,7 @@ local templates = {
         builder = function()
             local file, ft = get_buf_file(), vim.bo.filetype
             local cmd = run_cmds[ft] and vim.list_extend({ unpack(run_cmds[ft]) }, { file }) or { file }
+            local cwd = nil
             if ft == "c" then
                 local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
                 cmd = {
@@ -200,20 +216,26 @@ local templates = {
                     ),
                 }
             elseif ft == "rust" then
-                local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
-                cmd = {
-                    "sh",
-                    "-c",
-                    string.format(
-                        "trap %s EXIT; rustc %s -o %s && %s",
-                        vim.fn.shellescape("rm -f " .. out),
-                        vim.fn.shellescape(file),
-                        vim.fn.shellescape(out),
-                        vim.fn.shellescape(out)
-                    ),
-                }
+                local root = get_cargo_root()
+                if root then
+                    cmd = { "cargo", "run" }
+                    cwd = root
+                else
+                    local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
+                    cmd = {
+                        "sh",
+                        "-c",
+                        string.format(
+                            "trap %s EXIT; rustc %s -o %s && %s",
+                            vim.fn.shellescape("rm -f " .. out),
+                            vim.fn.shellescape(file),
+                            vim.fn.shellescape(out),
+                            vim.fn.shellescape(out)
+                        ),
+                    }
+                end
             end
-            return { cmd = cmd, components = default_components() }
+            return { cmd = cmd, cwd = cwd, components = default_components() }
         end,
         condition = { filetype = vim.tbl_keys(run_cmds) },
     },
@@ -287,9 +309,62 @@ local templates = {
     -- overseer's API doesn't model per-test execution (no cursor context, no
     -- gutter signs, no per-test status). neotest-java owns that workflow.
     {
+        name = "Cargo: Run",
+        builder = function()
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "cargo", "run" }, cwd = root, components = default_components() }
+        end,
+        condition = { filetype = { "rust" } },
+        tags = { "RUN" },
+    },
+    {
+        name = "Cargo: Check",
+        builder = function()
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "cargo", "check" }, cwd = root, components = default_components() }
+        end,
+        condition = { filetype = { "rust" } },
+    },
+    {
+        name = "Cargo: Clippy",
+        builder = function()
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "cargo", "clippy", "--", "-D", "warnings" }, cwd = root, components = default_components() }
+        end,
+        condition = { filetype = { "rust" } },
+    },
+    {
         name = "Cargo: Test",
         builder = function()
-            return { cmd = { "cargo", "test" }, components = default_components() }
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "cargo", "test" }, cwd = root, components = default_components() }
+        end,
+        condition = { filetype = { "rust" } },
+    },
+    {
+        name = "Cargo: Nextest",
+        builder = function()
+            require_executable("cargo-nextest")
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "cargo", "nextest", "run" }, cwd = root, components = default_components() }
+        end,
+        condition = { filetype = { "rust" } },
+    },
+    {
+        name = "Cargo: Watch Check",
+        builder = function()
+            require_executable("cargo-watch")
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "cargo", "watch", "-x", "check" }, cwd = root, components = default_components() }
+        end,
+        condition = { filetype = { "rust" } },
+    },
+    {
+        name = "Bacon",
+        builder = function()
+            require_executable("bacon")
+            local root = assert(get_cargo_root(), "no Cargo.toml for current buffer")
+            return { cmd = { "bacon" }, cwd = root, components = default_components() }
         end,
         condition = { filetype = { "rust" } },
     },
