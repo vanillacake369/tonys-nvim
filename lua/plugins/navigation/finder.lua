@@ -6,6 +6,19 @@ return {
         bigfile = { enabled = true },
         dashboard = { enabled = true },
         explorer = { enabled = true },
+        image = {
+            enabled = true,
+            resolve = function(file, src)
+                return require("config.markdown_assets").resolve_for_snacks(file, src)
+            end,
+            doc = {
+                enabled = false,
+                inline = true,
+                float = true,
+                max_width = 80,
+                max_height = 30,
+            },
+        },
         indent = { enabled = true },
         input = { enabled = true },
         notifier = { enabled = true, timeout = 3000 },

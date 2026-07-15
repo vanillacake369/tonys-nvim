@@ -87,12 +87,56 @@ export LOMBOK_JAR=/path/to/lombok.jar
 | `<leader>e` | Normal | 파일 탐색기 토글 |
 | `<C-_>` | Normal/Insert | 터미널 토글 |
 | `gd` | Normal | 정의로 이동 (LSP) |
+| `gf` | Markdown | cursor 아래 로컬 이미지/파일 열기 |
 | `K` | Normal | 호버 문서 (LSP) |
 | `gr` | Normal | 참조 찾기 (LSP) |
+| `<leader>p` | Markdown | clipboard 이미지 저장 후 링크 삽입 |
+| `<leader>mo` | Markdown | heading outline 열기 |
+| `<leader>mr` | Markdown | inline Markdown rendering + image rendering toggle |
 | `gcc` | Normal | 줄 주석 토글 |
 | `<leader>a` | Normal/Visual | 텍스트 정렬 |
 | `<M-l>` | Insert | Copilot 제안 수락 |
 | `<leader>?` | Normal | 키바인딩 도움말 |
+
+### Markdown 이미지와 TOC
+
+Markdown 이미지 workflow는 `lua/config/markdown_assets.lua`의 context-aware resolver가 담당합니다. resolver는 repo-local `.markdown-assets.json`을 가장 먼저 읽고, config가 없을 때만 알려진 블로그 구조를 fallback으로 감지합니다. 일반 Markdown 파일에는 블로그의 `/images/...` 규칙을 적용하지 않습니다.
+
+기본 정책:
+
+```text
+tonys-blog:
+  public/images/posts/{markdown-file-stem}/{image-name}.png
+  /images/posts/{markdown-file-stem}/{image-name}.png
+
+plain Markdown:
+  ./assets/{markdown-file-stem}/{image-name}.png
+  ./assets/{markdown-file-stem}/{image-name}.png
+```
+
+키:
+
+```text
+Markdown 이미지 붙여넣기:
+- <leader>p: clipboard 이미지를 현재 문서의 asset directory에 저장하고 링크 삽입
+
+이미지 열기:
+- gf: cursor 아래 로컬 이미지 또는 파일 열기
+- gd: LSP definition 전용으로 유지
+
+Markdown 렌더링:
+- <leader>mr: 현재 buffer inline rendering과 Snacks 이미지 렌더링 toggle
+- :MarkdownImageEnable: 현재 Markdown buffer 이미지 렌더링 활성화
+- :MarkdownImageDisable: 현재 Markdown buffer 이미지 렌더링 비활성화
+- :MarkdownImageToggle: 현재 Markdown buffer 이미지 렌더링 toggle
+- :MarkdownImageRefresh: resolver cache와 placement를 정리하고 다시 attach
+- :MarkdownImageDebug: buffer/window/capability/cache 상태 확인
+- <leader>mP: Astro dev server preview URL 열기
+
+TOC:
+- <leader>mo: heading outline 열기
+- <leader>mT: 현재 문서 본문 TOC 생성 또는 갱신
+```
 
 ## 🎨 기능별 플러그인
 

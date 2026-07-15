@@ -8,5 +8,7 @@ end
 
 require("config.keymaps")
 require("config.options")
+require("config.markdown_images").setup()
+require("config.markdown_assets").setup()
 require("config.lazy")
 require("config.clipboard")

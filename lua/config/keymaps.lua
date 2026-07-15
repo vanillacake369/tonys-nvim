@@ -812,33 +812,9 @@ M.definitions = {
         {
             "<leader>p",
             function()
-                Snacks.input({
-                    prompt = "Image file name (optional)",
-                    default = os.date("%Y-%m-%d-%H-%M-%S"),
-                }, function(value)
-                    if value == nil then
-                        return
-                    end
-
-                    value = vim.trim(value)
-                    local api_opts = { prompt_for_file_name = false }
-                    if value ~= "" then
-                        api_opts.file_name = value
-                    end
-
-                    local ok, pasted = pcall(function()
-                        return require("img-clip").paste_image(api_opts)
-                    end)
-                    if not ok then
-                        vim.notify("img-clip failed: " .. tostring(pasted), vim.log.levels.ERROR)
-                        return
-                    end
-                    if not pasted then
-                        vim.notify("img-clip could not paste from clipboard", vim.log.levels.WARN)
-                    end
-                end)
+                require("config.markdown_assets").paste_image()
             end,
-            desc = "Paste Image from Clipboard (with filename)",
+            desc = "Paste Markdown Image from Clipboard",
         },
     },
 }
