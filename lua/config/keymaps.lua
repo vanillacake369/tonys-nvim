@@ -79,6 +79,14 @@ M.definitions = {
         name = "+LSP Actions",
         prefix = "gr",
         {
+            "gra",
+            function()
+                require("plugins.core.lsp-code-action").smart_code_action()
+            end,
+            desc = "Code Actions",
+            mode = { "n", "v" },
+        },
+        {
             "grd",
             function()
                 Snacks.picker.lsp_definitions()
@@ -110,6 +118,11 @@ M.definitions = {
             "grn",
             vim.lsp.buf.rename,
             desc = "Rename Symbol",
+        },
+        {
+            "grx",
+            vim.lsp.codelens.run,
+            desc = "Run Code Lens",
         },
         {
             "gO",
@@ -154,14 +167,6 @@ M.definitions = {
                 require("refactoring").select_refactor()
             end,
             desc = "Refactor Menu",
-            mode = { "n", "v" },
-        },
-        {
-            "<leader>ca",
-            function()
-                require("plugins.core.lsp-code-action").smart_code_action()
-            end,
-            desc = "Code Actions",
             mode = { "n", "v" },
         },
     },
