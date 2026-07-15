@@ -78,6 +78,17 @@ M.languages = {
         },
         formatters = { "prettier", "yamlfmt" },
     },
+    toml = {
+        lsp_server = "taplo",
+        lsp_opts = {
+            cmd = { "taplo", "lsp", "stdio" },
+            filetypes = { "toml" },
+        },
+        treesitter = {
+            "toml",
+        },
+        formatters = { "taplo" },
+    },
     go = {
         lsp_server = "gopls",
         lsp_opts = {
