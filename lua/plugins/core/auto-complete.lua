@@ -17,10 +17,13 @@ return {
             -- Keymap: Ctrl+y to accept, Enter for newline
             keymap = {
                 preset = "none",
-                ["<C-y>"] = { "accept", "fallback" },
                 ["<CR>"] = { "fallback" },
                 ["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
                 ["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
+                -- NOTE :
+                -- ipad 와 혼용해서 사용하기 위해서
+                -- C-y 사용하도록 수정
+                ["<C-y>"] = { "show", "accept", "fallback" },
                 ["<C-Space>"] = { "show", "accept", "fallback" },
                 ["<C-e>"] = { "hide", "fallback" },
                 ["<C-d>"] = { "scroll_documentation_down", "fallback" },
