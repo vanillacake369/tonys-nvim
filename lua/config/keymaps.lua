@@ -817,7 +817,7 @@ M.definitions = {
         {
             "<leader>p",
             function()
-                require("config.markdown_assets").paste_image()
+                require("plugins.core.paste-img").paste_image()
             end,
             desc = "Paste Markdown Image from Clipboard",
         },

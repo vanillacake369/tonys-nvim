@@ -9,7 +9,7 @@ return {
         image = {
             enabled = true,
             resolve = function(file, src)
-                return require("config.markdown_assets").resolve_for_snacks(file, src)
+                return require("plugins.core.paste-img").resolve_for_snacks(file, src)
             end,
             doc = {
                 enabled = false,
