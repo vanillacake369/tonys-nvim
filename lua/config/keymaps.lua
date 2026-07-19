@@ -688,9 +688,16 @@ M.definitions = {
         {
             "<leader>wz",
             function()
-                require("plugins.core.support.window").toggle_fullscreen()
+                require("plugins.navigation.window").toggle_fullscreen()
             end,
             desc = "Toggle Fullscreen",
+        },
+        {
+            "<leader>ww",
+            function()
+                require("plugins.navigation.window").toggle_focus()
+            end,
+            desc = "Toggle Focus",
         },
         {
             "<leader>w-",
