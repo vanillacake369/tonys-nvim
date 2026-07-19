@@ -34,6 +34,24 @@ local function java_workspace_dir(root_dir)
     return vim.fn.stdpath("cache") .. "/jdtls/workspace/" .. project_name .. "_" .. vim.fn.sha256(root_dir):sub(1, 8)
 end
 
+local function java_settings_url()
+    local dir = vim.fn.stdpath("cache") .. "/jdtls"
+    local path = dir .. "/org.eclipse.jdt.core.prefs"
+    local lines = {
+        "eclipse.preferences.version=1",
+        "org.eclipse.jdt.core.compiler.problem.tasks=ignore",
+        "org.eclipse.jdt.core.compiler.taskTags=",
+        "org.eclipse.jdt.core.compiler.taskPriorities=",
+    }
+
+    vim.fn.mkdir(dir, "p")
+    if vim.fn.filereadable(path) == 0 or table.concat(vim.fn.readfile(path), "\n") ~= table.concat(lines, "\n") then
+        vim.fn.writefile(lines, path)
+    end
+
+    return path
+end
+
 local function java_cmd(root_dir)
     local cmd = { "jdtls", "-data", java_workspace_dir(root_dir) }
     table.insert(cmd, "--jvm-arg=-Dfile.encoding=UTF-8")
@@ -49,6 +67,7 @@ end
 
 local function java_settings()
     return {
+        ["java.settings.url"] = java_settings_url(),
         java = {
             signatureHelp = { enabled = true },
             contentProvider = { preferred = "fernflower" },
