@@ -106,7 +106,7 @@ local function setup_jdtls()
     jdtls.start_or_attach({
         cmd = java_cmd(root_dir),
         root_dir = root_dir,
-        capabilities = require("plugins.core.support.lsp").get_capabilities(),
+        capabilities = require("plugins.core.lsp").get_capabilities(),
         offset_encoding = "utf-16",
         flags = {
             debounce_text_changes = 150,

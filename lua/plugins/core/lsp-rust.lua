@@ -52,7 +52,7 @@ return {
     lazy = false,
     dependencies = { "saghen/blink.cmp" },
     init = function()
-        local lsp = require("plugins.core.support.lsp")
+        local lsp = require("plugins.core.lsp")
         lsp.setup_handlers()
 
         vim.g.rustaceanvim = {
