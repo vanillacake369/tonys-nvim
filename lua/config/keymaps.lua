@@ -35,40 +35,68 @@ M.definitions = {
         {
             "K",
             function()
-                local clients = vim.lsp.get_clients({ bufnr = 0 })
-                local offset_encoding = clients[1] and clients[1].offset_encoding or "utf-16"
-                local params = vim.lsp.util.make_position_params(0, offset_encoding)
+                local client = vim.lsp.get_clients({
+                    bufnr = 0,
+                    method = "textDocument/hover",
+                })[1]
 
-                vim.lsp.buf_request(0, "textDocument/hover", params, function(_, result)
-                    if not (result and result.contents) then
-                        Snacks.picker.lsp_definitions()
-                        return
-                    end
+                local function definitions()
+                    Snacks.picker.lsp_definitions()
+                end
 
-                    local contents = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
-                    if vim.tbl_isempty(contents) then
-                        return
-                    end
-                    local final_text = table.concat(contents, "\n")
+                if not client then
+                    return definitions()
+                end
 
-                    Snacks.win({
-                        text = final_text,
-                        width = 0.7,
-                        height = 0.5,
-                        border = "rounded",
-                        backdrop = 60,
-                        ft = "markdown",
-                        enter = true,
-                        keys = {
-                            ["q"] = "close",
-                            ["<Esc>"] = "close",
-                            ["<cr>"] = function(self)
-                                self:close()
-                                Snacks.picker.lsp_definitions()
-                            end,
-                        },
-                    })
-                end)
+                client:request(
+                    "textDocument/hover",
+                    vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16"),
+                    function(err, result)
+                        if err or not (result and result.contents) then
+                            return definitions()
+                        end
+
+                        local contents = vim.split(
+                            table.concat(vim.lsp.util.convert_input_to_markdown_lines(result.contents), "\n"),
+                            "\n",
+                            {
+                                plain = true,
+                                trimempty = true,
+                            }
+                        )
+
+                        if vim.tbl_isempty(contents) then
+                            return definitions()
+                        end
+
+                        Snacks.win({
+                            text = table.concat(contents, "\n"),
+                            ft = "markdown",
+                            -- NOTE : 좀 더 compact 한 게 좋다면 아래를 권장
+                            -- width = math.max(80, math.min(math.floor(vim.o.columns * 0.75), 132)),
+                            -- height = math.max(20, math.min(math.floor(vim.o.lines * 0.60), 40)),
+                            width = math.max(96, math.min(math.floor(vim.o.columns * 0.82), 160)),
+                            height = math.max(24, math.min(math.floor(vim.o.lines * 0.72), 48)),
+                            border = "rounded",
+                            backdrop = 60,
+                            enter = true,
+                            wo = {
+                                wrap = true,
+                                linebreak = true,
+                                conceallevel = 2,
+                            },
+                            keys = {
+                                q = "close",
+                                ["<Esc>"] = "close",
+                                ["<CR>"] = function(win)
+                                    win:close()
+                                    definitions()
+                                end,
+                            },
+                        })
+                    end,
+                    0
+                )
             end,
             desc = "Show Documentation",
         },
