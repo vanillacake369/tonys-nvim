@@ -1,8 +1,9 @@
--- TODO :
--- vercel style 의 comment 를 달아줄 것 !!!
+-- NOTE: Java 는 jdtls 전용 lifecycle 이 필요해 공통 lsp.lua 와 분리.
 local project_markers = { "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "pom.xml" }
 
 local function get_lombok_jar()
+    -- NOTE: Nix 환경에서는 `lombok` executable 이 wrapper 일 수 있다.
+    -- 명시 env 를 먼저 믿고, 없을 때만 wrapper 내부 jar 경로를 추출한다.
     local env_path = os.getenv("LOMBOK_JAR")
     if env_path and vim.fn.filereadable(env_path) == 1 then
         return env_path
@@ -30,11 +31,15 @@ local function get_lombok_jar()
 end
 
 local function java_workspace_dir(root_dir)
+    -- NOTE: 같은 project name 이 여러 경로에 있을 수 있어 root hash 를 붙인다.
+    -- jdtls workspace cache 충돌은 stale diagnostics/import state 로 이어진다.
     local project_name = vim.fn.fnamemodify(vim.fs.normalize(root_dir), ":t")
     return vim.fn.stdpath("cache") .. "/jdtls/workspace/" .. project_name .. "_" .. vim.fn.sha256(root_dir):sub(1, 8)
 end
 
 local function java_settings_url()
+    -- NOTE: Eclipse JDT task tag diagnostics 는 Neovim TODO comment workflow 와 충돌한다.
+    -- 별도 prefs 파일로 jdtls 쪽 task tag 인식을 비워 editor comment highlight 만 남긴다.
     local dir = vim.fn.stdpath("cache") .. "/jdtls"
     local path = dir .. "/org.eclipse.jdt.core.prefs"
     local lines = {
@@ -53,6 +58,8 @@ local function java_settings_url()
 end
 
 local function java_cmd(root_dir)
+    -- NOTE: jdtls 는 JVM arg 를 CLI 로만 받는다.
+    -- Gradle daemon idle timeout 과 Lombok javaagent 를 language server lifecycle 에 묶는다.
     local cmd = { "jdtls", "-data", java_workspace_dir(root_dir) }
     table.insert(cmd, "--jvm-arg=-Dfile.encoding=UTF-8")
     table.insert(cmd, "--jvm-arg=-Dorg.gradle.daemon.idletimeout=300000")
@@ -126,6 +133,8 @@ local function setup_jdtls()
         cmd = java_cmd(root_dir),
         root_dir = root_dir,
         capabilities = require("plugins.core.lsp").get_capabilities(),
+        -- NOTE: jdtls 는 UTF-16 offset 을 기대하고 incremental sync 에서 stale range 가
+        -- 생기는 경우가 있어 full sync 쪽을 선택한다.
         offset_encoding = "utf-16",
         flags = {
             debounce_text_changes = 150,
@@ -201,7 +210,13 @@ local function setup_jdtls_manual_sync()
             local uri = vim.uri_from_bufnr(args.buf)
             for _, client in ipairs(vim.lsp.get_clients({ name = "jdtls" })) do
                 if not root or client_owns_path(client, root) then
-                    client:request("java/projectConfigurationUpdate", { uri = uri }, nil, args.buf)
+                    -- NOTE: nil callback 은 실패를 조용히 삼킨다.
+                    -- Gradle/Maven reimport 실패는 바로 notify 해야 원인을 추적할 수 있다.
+                    client:request("java/projectConfigurationUpdate", { uri = uri }, function(err)
+                        if err then
+                            vim.notify(vim.inspect(err), vim.log.levels.WARN)
+                        end
+                    end, args.buf)
                 end
             end
         end,
