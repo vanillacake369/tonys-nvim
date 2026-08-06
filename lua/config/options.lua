@@ -17,4 +17,8 @@ vim.opt.mouse = "a"
 vim.opt.wrap = false
 
 -- Incremental Search
+-- Case insensitive Search
+vim.opt.hlsearch = true
 vim.opt.incsearch = true
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
