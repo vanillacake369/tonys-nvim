@@ -3,7 +3,10 @@ return {
     event = { "BufWritePre" },
     cmd = "ConformInfo",
     keys = function()
-        return require("config.keymaps").get_keys("code")
+        -- PERF: code group 중 format key 만 conform lazy trigger 로 사용.
+        return require("config.keymaps").get_keys("code", function(item)
+            return item[1] == "<leader>cf"
+        end)
     end,
     opts = function()
         local lang = require("config.languages")

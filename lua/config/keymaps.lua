@@ -852,16 +852,17 @@ M.definitions = {
 }
 
 -- Convert to Lazy.nvim keys format
-function M.get_keys(group_name)
+function M.get_keys(group_name, filter)
     local keys = {}
     local group = M.definitions[group_name]
     if not group then
         return keys
     end
 
+    -- NOTE: plugin spec 이 한 group 의 일부 key 만 lazy-load 하도록 필터 지원.
     for _, item in ipairs(group) do
         -- Skip metadata fields
-        if type(item) == "table" and item[1] then
+        if type(item) == "table" and item[1] and (not filter or filter(item)) then
             table.insert(keys, {
                 item[1],
                 item[2],
