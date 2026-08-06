@@ -51,7 +51,7 @@ return {
                 enabled = false,
             },
         })
-        -- NOTE : 인증이 안 되어있다면Copilot auth 를 통해 바로 로그인하게 함
+        -- NOTE: 인증이 없으면 Copilot auth 로 바로 로그인.
         --
         -- if is_copilot_authenticated() then
         --     vim.notify("Copilot: Authenticated", vim.log.levels.INFO)

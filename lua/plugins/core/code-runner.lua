@@ -203,6 +203,8 @@ local templates = {
             local cmd = run_cmds[ft] and vim.list_extend({ unpack(run_cmds[ft]) }, { file }) or { file }
             local cwd = nil
             if ft == "c" then
+                -- NOTE: 단일 C 파일 실행은 임시 binary 를 만들고 trap 으로 정리한다.
+                -- project build system 이 없는 scratch 파일을 빠르게 실행하기 위한 경로다.
                 local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
                 cmd = {
                     "sh",
@@ -218,6 +220,8 @@ local templates = {
             elseif ft == "rust" then
                 local root = get_cargo_root()
                 if root then
+                    -- NOTE: Cargo project 안에서는 current file 이 아니라 package entrypoint 를 실행한다.
+                    -- 단일 파일 rustc 경로는 Cargo.toml 이 없을 때만 fallback 한다.
                     cmd = { "cargo", "run" }
                     cwd = root
                 else
@@ -410,6 +414,8 @@ return {
             group = group,
             pattern = "OverseerOutput",
             callback = function(args)
+                -- NOTE: Overseer output 은 float/terminal 양쪽에서 열릴 수 있다.
+                -- buffer-local q/Esc 로 같은 buffer 를 보여주는 모든 window 를 닫는다.
                 local close_output = function()
                     for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do
                         if vim.api.nvim_win_is_valid(win) then

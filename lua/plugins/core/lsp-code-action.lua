@@ -53,6 +53,7 @@ local function treesitter_range_to_vim_range(bufnr, start_row, start_col, end_ro
 end
 
 local function rust_expression_range(bufnr)
+    -- NOTE: Rust refactor action 은 커서 주변 expression 범위가 있을 때 더 정확함.
     if vim.bo[bufnr].filetype ~= "rust" or vim.fn.mode() ~= "n" or not has_lsp_client(bufnr, "rust-analyzer") then
         return nil
     end
@@ -84,6 +85,7 @@ local function rust_expression_range(bufnr)
 end
 
 local function java_code_action(bufnr)
+    -- NOTE: jdtls 는 resolve 동작이 달라 built-in code action 경로가 안정적임.
     if not has_lsp_client(bufnr, "jdtls") then
         return false
     end
@@ -109,7 +111,6 @@ end
 function M.smart_code_action(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
 
-    -- jdtls has custom request/resolve behavior; the built-in path is less fragile.
     if java_code_action(bufnr) then
         return
     end

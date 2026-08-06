@@ -16,16 +16,13 @@ M.languages = {
         formatters = { "ruff_fix", "ruff_organize_imports", "ruff_format" },
     },
     java = {
-        -- 명시적 filetype: lang_name fallback 우연한 일치에 의존하지 않도록
+        -- NOTE: lang_name fallback 의 우연한 일치에 기대지 않도록 명시한다.
         filetypes = { "java" },
         treesitter = {
             "java",
         },
-        -- NOTE :
-        -- google-java-format 사용할 수 있으나
-        -- method chaining 에 대해 new line 설정을
-        -- 처리할 수 없어서 clang-format 으로 우회
-        -- (별칭 clang-format-java: c_cpp 와 옵션 충돌 방지)
+        -- NOTE: google-java-format 은 method chaining newline 정책을 조정하기 어렵다.
+        -- clang-format-java alias 로 우회해 c_cpp clang-format 옵션과 충돌하지 않게 한다.
         formatters = { "clang-format-java" },
     },
     c_cpp = {
@@ -67,6 +64,8 @@ M.languages = {
                     },
 
                     schemas = (function()
+                        -- NOTE: yamlls built-in schemaStore fetch 는 끄고 SchemaStore.nvim 결과를 주입한다.
+                        -- Kubernetes repo 관례 경로는 local override 로 추가해 manifest hover/validate 를 안정화한다.
                         local schemas = require("schemastore").yaml.schemas()
 
                         schemas.kubernetes = {
@@ -285,7 +284,7 @@ M.languages = {
         linters = { "hadolint" },
     },
     helm = {
-        -- nvim 기본에 helm filetype 이 없어 명시적으로 매핑
+        -- NOTE: nvim 기본 filetype detector 에 helm 이 없어 formatter/treesitter 용으로 명시한다.
         filetypes = { "helm" },
         treesitter = {
             "helm",
@@ -308,21 +307,21 @@ M.languages = {
     },
 }
 
---- 범용 수집 함수 (Helper)
 local function collect_config(key, is_list)
+    -- NOTE: language registry 는 두 종류의 consumer 를 동시에 먹인다.
+    -- treesitter 는 flat list, linter/formatter 는 filetype -> tools map 이 필요하다.
     local result = {}
     for lang_name, config in pairs(M.languages) do
         local data = config[key]
         if data then
             if is_list then
-                -- data가 테이블인지 확인하여 LSP 에러 방지
                 if type(data) == "table" then
                     for _, v in ipairs(data) do
                         table.insert(result, v)
                     end
                 end
             else
-                -- filetype 매핑 우선순위:
+                -- NOTE: filetype 매핑 우선순위:
                 --   1) config.filetypes (linter/formatter 가 lsp filetypes 와 다를 때)
                 --   2) config.lsp_opts.filetypes
                 --   3) lang_name (fallback)

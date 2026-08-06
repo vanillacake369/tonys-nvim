@@ -20,9 +20,7 @@ return {
                 ["<CR>"] = { "fallback" },
                 ["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
                 ["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
-                -- NOTE :
-                -- ipad 와 혼용해서 사용하기 위해서
-                -- C-y 사용하도록 수정
+                -- NOTE: iPad 와 혼용하기 위해 accept 는 C-y 로 고정.
                 ["<C-y>"] = { "show", "accept", "fallback" },
                 ["<C-Space>"] = { "show", "accept", "fallback" },
                 ["<C-e>"] = { "hide", "fallback" },
@@ -91,9 +89,7 @@ return {
             },
 
             -- Sources
-            -- NOTE:
-            -- Using saghen/blink.cmp
-            -- for integrations with copilot
+            -- NOTE: Copilot 통합은 blink.cmp provider 경로로만 사용.
             sources = {
                 default = { "lazydev", "lsp", "path", "snippets", "buffer", "copilot" },
                 providers = {

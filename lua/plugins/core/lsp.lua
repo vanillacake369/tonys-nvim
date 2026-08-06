@@ -47,6 +47,8 @@ local function apply_workspace_edit_if_present(edit, offset_encoding)
 end
 
 local function request_full_buffer_code_actions(client, bufnr, kind)
+    -- NOTE: organizeImports/fixAll 은 cursor 위치가 아니라 buffer 전체 문맥이 필요하다.
+    -- 현재 줄 range 로 요청하면 일부 서버가 action 을 돌려주지 않는다.
     local line_count = vim.api.nvim_buf_line_count(bufnr)
     local last_line = math.max(line_count - 1, 0)
     local last_line_text = vim.api.nvim_buf_get_lines(bufnr, last_line, last_line + 1, false)[1] or ""
@@ -103,6 +105,8 @@ local function run_lsp_save_actions(bufnr, client_id)
         return
     end
 
+    -- NOTE: Rust save workflow 는 rustaceanvim/rustfmt 가 소유한다.
+    -- generic source.fixAll 을 섞으면 clippy/rust-analyzer action 과 중복될 수 있다.
     if client.name == "rust-analyzer" then
         return
     end
@@ -139,7 +143,7 @@ M[2] = {
 
                 local attached_client_id = attach_args.data and attach_args.data.client_id or nil
 
-                -- Organize Imports & Fix All on Save (Universal LSP-based)
+                -- NOTE: LSP attach 시점에 save action 을 client 별로 등록한다.
                 -- 버퍼+클라이언트별 augroup + clear=true:
                 -- (1) 동일 버퍼+클라이언트가 재부착될 때 (jdtls 재시작 등)
                 --     BufWritePre 가 스택되는 것을 방지.

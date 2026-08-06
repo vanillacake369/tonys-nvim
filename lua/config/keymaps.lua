@@ -72,7 +72,7 @@ M.definitions = {
                         Snacks.win({
                             text = table.concat(contents, "\n"),
                             ft = "markdown",
-                            -- NOTE : 좀 더 compact 한 게 좋다면 아래를 권장
+                            -- NOTE: 더 compact 한 hover 창이 필요하면 아래 크기를 사용.
                             -- width = math.max(80, math.min(math.floor(vim.o.columns * 0.75), 132)),
                             -- height = math.max(20, math.min(math.floor(vim.o.lines * 0.60), 40)),
                             width = math.max(96, math.min(math.floor(vim.o.columns * 0.82), 160)),
