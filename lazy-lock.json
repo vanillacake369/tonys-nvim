@@ -38,7 +38,6 @@
   "overseer.nvim": { "branch": "master", "commit": "f818eefff81f4b12fb7cf236f1b6c16768a2fcbc" },
   "plenary.nvim": { "branch": "master", "commit": "74b06c6c75e4eeb3108ec01852001636d85a932b" },
   "put_at_end.nvim": { "branch": "master", "commit": "d885ca16bbc19bbf3abbe06343fe39ed5b8500da" },
-  "refactoring.nvim": { "branch": "master", "commit": "6784b54587e6d8a6b9ea199318512170ffb9e418" },
   "render-markdown.nvim": { "branch": "main", "commit": "0fd43fb4b1f073931c4b481f5f3b7cea3749e190" },
   "rustaceanvim": { "branch": "main", "commit": "f69c85a955b9a83d495e3dc8d43adb6364a0b765" },
   "snacks.nvim": { "branch": "main", "commit": "ad9ede6a9cddf16cedbd31b8932d6dcdee9b716e" },
