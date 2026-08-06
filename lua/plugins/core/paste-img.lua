@@ -89,6 +89,8 @@ local function read_json(path)
 end
 
 local function find_repo_config(start)
+    -- NOTE: repo-local config 가 있으면 blog fallback 보다 항상 우선한다.
+    -- 일반 Markdown repo 에 tonys-blog URL 규칙이 섞이지 않게 하는 경계다.
     local dir = normalize_path(start)
     while dir and dir ~= "" do
         for _, name in ipairs(CONFIG_FILES) do
@@ -117,6 +119,8 @@ local function read_package_name(root)
 end
 
 local function find_tonys_blog_root(start)
+    -- NOTE: legacy fallback 은 명시 config 가 없는 tonys-blog 에만 적용한다.
+    -- 구조와 package name 을 같이 확인해서 다른 Astro repo 를 오탐하지 않는다.
     local dir = normalize_path(start)
     while dir and dir ~= "" do
         local has_astro = file_exists(path_join(dir, "astro.config.mjs"))
@@ -156,6 +160,8 @@ local function split_extension(name)
 end
 
 local function sanitize_filename(name)
+    -- NOTE: clipboard filename 은 Markdown link 와 filesystem 양쪽에 들어간다.
+    -- 숨김 파일/확장자 없는 이름/비이미지 확장자는 안전한 png 이름으로 정규화한다.
     local fallback = os.date("%Y-%m-%d-%H-%M-%S")
     local cleaned = sanitize_segment(name, fallback)
     cleaned = cleaned:gsub("^%.+", "")
@@ -222,6 +228,8 @@ local function default_plain_context(path)
 end
 
 local function context_from_config(path, config)
+    -- NOTE: configured repo 라도 contentRoot 밖 파일에는 repo URL 정책을 적용하지 않는다.
+    -- 임시 메모나 README 에 public asset path 가 잘못 들어가는 것을 막는다.
     local root = normalize_path(config.root)
     local content_root = config.contentRoot and normalize_path(path_join(root, config.contentRoot)) or nil
     local kind = config.kind or "configured"
@@ -284,6 +292,8 @@ end
 function M.get_context_for_path(path)
     path = normalize_path(path)
 
+    -- NOTE: 우선순위는 explicit config -> tonys-blog fallback -> plain Markdown.
+    -- 새 repo 는 .markdown-assets.json 으로 정책을 명시하는 쪽이 안전하다.
     local config = find_repo_config(dirname(path))
     if config then
         return context_from_config(path, config)
@@ -300,6 +310,8 @@ end
 local function markdown_link_for(ctx, image_path)
     image_path = normalize_path(image_path)
 
+    -- NOTE: 저장 위치가 관리 asset_dir 안이면 repo 정책 URL 을 사용한다.
+    -- 밖에 저장된 파일은 Neovim 의 상대경로 계산으로 fallback 한다.
     if ctx.markdown_link_prefix and strip_prefix(image_path, normalize_path(ctx.asset_dir) .. "/") then
         return ctx.markdown_link_prefix .. "/" .. basename(image_path)
     end
@@ -404,6 +416,8 @@ local function trim_link_target(target)
 end
 
 function M.resolve_target_for_path(target, path)
+    -- NOTE: Markdown target 을 에디터에서 열 수 있는 local file 로 해석한다.
+    -- absolute filesystem path, public URL prefix, 현재 파일 상대경로 순서로만 허용한다.
     target = trim_link_target(target)
     if target == "" then
         return nil, "empty target"
@@ -425,6 +439,8 @@ function M.resolve_target_for_path(target, path)
         end
 
         if ctx and ctx.public_root then
+            -- NOTE: `/images/...` 같은 site-root URL 은 publicRoot 가 명시된 context 에서만
+            -- local file 로 매핑한다. 임의 root URL 은 잘못 열지 않고 거부한다.
             local prefixes = vim.tbl_filter(function(v)
                 return v and v ~= ""
             end, { ctx.public_url_prefix, ctx.legacy_public_url_prefix })
@@ -509,6 +525,8 @@ end
 
 function M.resolve_for_snacks(file, src)
     if file and file ~= "" then
+        -- PERF: Snacks image resolver 는 render/scroll 중 반복 호출된다.
+        -- 실패도 false 로 캐시해 같은 깨진 링크를 계속 stat 하지 않는다.
         local key = normalize_path(file) .. "\n" .. tostring(src)
         local cached = M.cache.resolved_paths[key]
         if cached ~= nil then
@@ -566,6 +584,8 @@ function M.cache_stats()
 end
 
 local function collect_headings(bufnr)
+    -- NOTE: preview/outline 용 heading 만 수집한다.
+    -- frontmatter 와 fenced code 안의 # 문자는 문서 구조가 아니므로 제외한다.
     bufnr = bufnr or 0
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
     local headings = {}
@@ -620,6 +640,8 @@ function M.open_heading_outline()
             table.insert(items, {
                 text = string.format("%4d  %s", heading.line, heading.text),
                 line = heading.line,
+                idx = heading.line,
+                sort = heading.line,
                 heading = heading,
             })
         end
@@ -628,6 +650,10 @@ function M.open_heading_outline()
             title = "Markdown Headings",
             items = items,
             format = "text",
+            -- NOTE: 빈 query 상태에서는 preview 와 같은 위->아래 문서 순서를 유지한다.
+            -- fuzzy match 결과가 있을 때만 matcher 가 표시 범위를 좁히게 둔다.
+            matcher = { sort = false },
+            sort = { fields = { "sort" } },
             confirm = function(picker, item)
                 picker:close()
                 if item then
@@ -652,58 +678,12 @@ function M.open_heading_outline()
     end)
 end
 
-local function slugify_heading(title)
-    return title
-        :lower()
-        :gsub("`([^`]*)`", "%1")
-        :gsub("[^%w%s가-힣ㄱ-ㅎㅏ-ㅣ_-]", "")
-        :gsub("%s+", "-")
-        :gsub("%-+", "-")
-        :gsub("^%-+", "")
-        :gsub("%-+$", "")
-end
-
 local function encode_url_path(path)
     return (
         path:gsub("([^A-Za-z0-9%-%._~/])", function(char)
             return string.format("%%%02X", string.byte(char))
         end)
     )
-end
-
-function M.update_body_toc()
-    local bufnr = 0
-    local headings = collect_headings(bufnr)
-    if #headings == 0 then
-        vim.notify("TOC를 만들 heading이 없습니다.", vim.log.levels.INFO)
-        return
-    end
-
-    local toc = { "<!-- toc:start -->" }
-    for _, heading in ipairs(headings) do
-        local indent = string.rep("  ", math.max(heading.level - 1, 0))
-        table.insert(toc, string.format("%s- [%s](#%s)", indent, heading.title, slugify_heading(heading.title)))
-    end
-    table.insert(toc, "<!-- toc:end -->")
-
-    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local start_line, end_line
-    for index, line in ipairs(lines) do
-        if line:match("^<!%-%- toc:start %-%->$") then
-            start_line = index
-        elseif line:match("^<!%-%- toc:end %-%->$") then
-            end_line = index
-            break
-        end
-    end
-
-    if start_line and end_line and start_line <= end_line then
-        vim.api.nvim_buf_set_lines(bufnr, start_line - 1, end_line, false, toc)
-        return
-    end
-
-    local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-    vim.api.nvim_buf_set_lines(bufnr, cursor_line, cursor_line, false, toc)
 end
 
 function M.open_astro_preview()
@@ -734,7 +714,6 @@ function M.setup()
         { "MarkdownPasteImage", M.paste_image },
         { "MarkdownOpenAsset", M.open_link_under_cursor },
         { "MarkdownHeadingOutline", M.open_heading_outline },
-        { "MarkdownUpdateToc", M.update_body_toc },
         { "MarkdownAstroPreview", M.open_astro_preview },
         {
             "MarkdownAssetClearCache",
@@ -754,7 +733,6 @@ function M.setup()
             for _, keymap in ipairs({
                 { "gf", M.open_link_under_cursor, "Open Markdown asset under cursor" },
                 { "<leader>mo", M.open_heading_outline, "Markdown heading outline" },
-                { "<leader>mT", M.update_body_toc, "Markdown body TOC update" },
                 { "<leader>mr", "<cmd>MarkdownRenderToggle<cr>", "Markdown inline render toggle" },
                 { "<leader>mP", M.open_astro_preview, "Open Astro browser preview" },
             }) do
