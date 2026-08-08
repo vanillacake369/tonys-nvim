@@ -2,7 +2,7 @@ return {
     {
         "numToStr/Comment.nvim",
         keys = function()
-            return require("config.keymaps").get_keys("comment")
+            return require("config.keymaps").bind("comment")
         end,
         opts = {},
     },
@@ -11,7 +11,7 @@ return {
         dependencies = { "nvim-lua/plenary.nvim" },
         event = { "BufReadPost", "BufNewFile" },
         keys = function()
-            return require("config.keymaps").get_keys("todo")
+            return require("config.keymaps").bind("todo")
         end,
         opts = {},
     },
