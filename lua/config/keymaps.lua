@@ -851,8 +851,8 @@ M.definitions = {
     },
 }
 
--- Convert to Lazy.nvim keys format
-function M.get_keys(group_name, filter)
+-- Convert a registry group to Lazy.nvim keys format.
+local function get_keys(group_name, filter)
     local keys = {}
     local group = M.definitions[group_name]
     if not group then
@@ -874,23 +874,37 @@ function M.get_keys(group_name, filter)
     return keys
 end
 
--- Apply keymaps directly using vim.keymap.set (for LSP, etc.)
-function M.apply_keymaps(group_name, opts)
-    local group = M.definitions[group_name]
-    if not group then
-        return
+-- Public adapter for plugin specs and direct keymap attachment.
+function M.bind(groups, opts)
+    local keys = {}
+    if type(groups) == "string" or (type(groups) == "table" and (groups.group or groups.filter)) then
+        groups = { groups }
     end
 
-    for _, item in ipairs(group) do
-        -- Skip metadata fields
-        if type(item) == "table" and item[1] then
-            local key_opts = vim.tbl_extend("force", opts or {}, {
-                desc = item.desc,
-            })
-            local mode = item.mode or "n"
-            vim.keymap.set(mode, item[1], item[2], key_opts)
+    for _, spec in ipairs(groups or {}) do
+        local group_name = spec
+        local filter = nil
+
+        if type(spec) == "table" then
+            group_name = spec.group or spec[1]
+            filter = spec.filter
+        end
+
+        if group_name then
+            vim.list_extend(keys, get_keys(group_name, filter))
         end
     end
+
+    if opts then
+        for _, item in ipairs(keys) do
+            local key_opts = vim.tbl_extend("force", opts, {
+                desc = item.desc,
+            })
+            vim.keymap.set(item.mode or "n", item[1], item[2], key_opts)
+        end
+    end
+
+    return keys
 end
 
 -- Generate Which-key spec automatically
@@ -908,8 +922,6 @@ function M.get_which_key_spec()
 end
 
 -- Apply plugin-independent keymaps directly at load time
-M.apply_keymaps("window")
-M.apply_keymaps("move")
-M.apply_keymaps("editor")
+M.bind({ "window", "move", "editor" }, {})
 
 return M
