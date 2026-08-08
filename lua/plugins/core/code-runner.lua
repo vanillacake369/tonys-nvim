@@ -400,7 +400,7 @@ return {
         "OverseerRestartLast",
     },
     keys = function()
-        return require("config.keymaps").get_keys("runner")
+        return require("config.keymaps").bind("runner")
     end,
     opts = {
         task_list = { direction = "bottom", min_height = 0.5, max_height = 0.5, default_detail = 1 },
