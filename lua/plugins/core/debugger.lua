@@ -2,7 +2,7 @@ return {
     {
         "mfussenegger/nvim-dap",
         keys = function()
-            return require("config.keymaps").get_keys("debug")
+            return require("config.keymaps").bind("debug")
         end,
         dependencies = {
             "nvim-neotest/nvim-nio",
