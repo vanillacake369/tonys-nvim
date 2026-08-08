@@ -4,7 +4,7 @@ M[1] = "HakonHarnes/img-clip.nvim"
 M.event = "VeryLazy"
 M.opts = {}
 M.keys = function()
-    return require("config.keymaps").get_keys("paste")
+    return require("config.keymaps").bind("paste")
 end
 M.init = function()
     M.setup()
