@@ -26,7 +26,7 @@ return {
     end,
     keys = function()
         local keymaps = require("config.keymaps")
-        local keys = keymaps.get_keys("which_key")
+        local keys = keymaps.bind("which_key")
         return keys
     end,
     config = function(_, opts)
