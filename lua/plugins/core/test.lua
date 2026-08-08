@@ -30,7 +30,7 @@ return {
         },
         ft = { "java", "go", "python", "rust" },
         keys = function()
-            return require("config.keymaps").get_keys("test")
+            return require("config.keymaps").bind("test")
         end,
         config = function()
             -- Upstream bug in neotest-java v0.37.3 (also present on main as of
