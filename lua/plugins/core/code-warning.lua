@@ -4,7 +4,7 @@ return {
         opts = {},
         cmd = "Trouble",
         keys = function()
-            return require("config.keymaps").get_keys("diagnostics")
+            return require("config.keymaps").bind("diagnostics")
         end,
     },
 }
