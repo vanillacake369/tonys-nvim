@@ -136,10 +136,7 @@ M[2] = {
         vim.api.nvim_create_autocmd("LspAttach", {
             callback = function(attach_args)
                 local keymaps = require("config.keymaps")
-                local groups = { "lsp", "lsp_actions", "code", "debug" }
-                for _, group in ipairs(groups) do
-                    keymaps.apply_keymaps(group, { buffer = attach_args.buf })
-                end
+                keymaps.bind({ "lsp", "lsp_actions", "code", "debug" }, { buffer = attach_args.buf })
 
                 local attached_client_id = attach_args.data and attach_args.data.client_id or nil
 
