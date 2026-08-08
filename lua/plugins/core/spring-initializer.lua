@@ -6,7 +6,7 @@ return {
         "nvim-telescope/telescope.nvim",
     },
     keys = function()
-        return require("config.keymaps").get_keys("springInitializr")
+        return require("config.keymaps").bind("springInitializr")
     end,
     opts = {},
 }
