@@ -2,6 +2,9 @@ return {
     {
         "lewis6991/gitsigns.nvim",
         event = { "BufReadPre", "BufNewFile" },
+        keys = function()
+            return require("config.keymaps").bind("git")
+        end,
         opts = {
             signs = {
                 add = { text = "+" },
