@@ -2,7 +2,7 @@ return {
     "akinsho/bufferline.nvim",
     event = "VeryLazy",
     keys = function()
-        return require("config.keymaps").get_keys("buffer")
+        return require("config.keymaps").bind("buffer")
     end,
     opts = function(_, opts)
         opts.options = vim.tbl_deep_extend("force", opts.options or {}, {
