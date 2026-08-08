@@ -217,6 +217,13 @@ M.definitions = {
             desc = "Git Diff (Hunks)",
         },
         {
+            "<leader>gD",
+            function()
+                require("gitsigns").diffthis()
+            end,
+            desc = "Diff Current File",
+        },
+        {
             "<leader>go",
             function()
                 Snacks.gitbrowse()
@@ -229,6 +236,36 @@ M.definitions = {
                 Snacks.picker.git_log_file()
             end,
             desc = "Git File History",
+        },
+        {
+            "<leader>gp",
+            function()
+                require("gitsigns").preview_hunk()
+            end,
+            desc = "Preview Hunk",
+        },
+        {
+            "<leader>gr",
+            function()
+                require("gitsigns").reset_hunk()
+            end,
+            desc = "Reset Hunk",
+        },
+        {
+            "<leader>gR",
+            function()
+                local file = vim.fn.expand("%:t")
+                local choice = vim.fn.confirm(
+                    string.format("Discard all unstaged changes in %s?", file ~= "" and file or "current buffer"),
+                    "&Yes\n&No",
+                    2
+                )
+
+                if choice == 1 then
+                    require("gitsigns").reset_buffer()
+                end
+            end,
+            desc = "Reset Current File",
         },
         {
             mode = { "n", "t" },
