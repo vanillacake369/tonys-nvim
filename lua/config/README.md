@@ -52,7 +52,7 @@ Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 �
 - 코드와 같은 내용을 문서에 반복하지 않는다.
 - 설정 이유가 중요한 경우 Lua 파일 근처에 `NOTE:`, `PERF:`, `TODO:` 주석으로 남긴다.
 - 새 keymap 은 `desc`를 갖게 해서 which-key 와 picker 에서 의도가 드러나게 한다.
-- plugin lazy-load 에 필요한 key subset 은 `keymaps.get_keys(group, filter)` 패턴을 사용한다.
+- plugin lazy-load 와 buffer-local attach 에 필요한 keymap group 은 `keymaps.bind(...)` adapter 를 사용한다.
 - language tooling 은 먼저 `languages.lua` registry 에 넣고, plugin-specific attach/lifecycle 이 필요할 때만 별도 module 로 뺀다.
 
 ## Change Checklist
