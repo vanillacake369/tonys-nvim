@@ -2,10 +2,14 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- Plugin-native keymaps (configured in their respective plugin files):
--- Insert mode completion: lua/plugins/core/auto-complete.lua
--- Copilot suggestions:    lua/plugins/core/copilot.lua
--- UI toggles <leader>u*:  lua/plugins/navigation/finder.lua
+-- C-d, C-u, C-f, C-b 에 따라 스크롤 시 커서 위치가 화면 중앙에 오도록 설정
+vim.keymap.set("n", "<C-d>", "<C-d>zz", { desc = "Scroll Half Page Down and Center" })
+vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Scroll Half Page Up and Center" })
+vim.keymap.set("n", "<C-f>", "<C-f>zz", { desc = "Scroll Full Page Down and Center" })
+vim.keymap.set("n", "<C-b>", "<C-b>zz", { desc = "Scroll Full Page Up and Center" })
+
+-- NOTE: plugin-native keymaps stay with their plugin specs.
+-- Examples: completion, Copilot suggestions, and UI toggles.
 
 local M = {}
 
@@ -72,9 +76,11 @@ M.definitions = {
                         Snacks.win({
                             text = table.concat(contents, "\n"),
                             ft = "markdown",
-                            -- NOTE: 더 compact 한 hover 창이 필요하면 아래 크기를 사용.
-                            -- width = math.max(80, math.min(math.floor(vim.o.columns * 0.75), 132)),
-                            -- height = math.max(20, math.min(math.floor(vim.o.lines * 0.60), 40)),
+                            -- NOTE: compact hover 에 쓸 대체 크기.
+                            -- width = math.max(80,
+                            --     math.min(math.floor(vim.o.columns * 0.75), 132))
+                            -- height = math.max(20,
+                            --     math.min(math.floor(vim.o.lines * 0.60), 40))
                             width = math.max(96, math.min(math.floor(vim.o.columns * 0.82), 160)),
                             height = math.max(24, math.min(math.floor(vim.o.lines * 0.72), 48)),
                             border = "rounded",
@@ -109,7 +115,7 @@ M.definitions = {
         {
             "gra",
             function()
-                require("plugins.core.lsp-code-action").smart_code_action()
+                require("plugins.core.lsp").smart_code_action()
             end,
             desc = "Code Actions",
             mode = { "n", "v" },
@@ -176,7 +182,7 @@ M.definitions = {
         {
             "<leader>cf",
             function()
-                -- 시각 선택 종료 후 '< / '> 마크가 갱신되므로 그 값을 range 로 전달
+                -- NOTE: visual 종료 후 갱신된 '< / '> 마크를 range 로 전달.
                 require("conform").format({
                     async = true,
                     lsp_format = "never",
@@ -292,19 +298,27 @@ M.definitions = {
         {
             "<leader>dc",
             function()
-                require("dap").continue()
+                require("plugins.core.debugger").debug_run()
             end,
             desc = "Start/Continue",
         },
         {
-            "<leader>dt",
+            "<leader>db",
             function()
                 require("dap").toggle_breakpoint()
             end,
             desc = "Toggle Breakpoint",
         },
         {
-            "<leader>dT",
+            "<leader>dB",
+            function()
+                local condition = vim.fn.input("Breakpoint condition: ")
+                require("dap").set_breakpoint(condition ~= "" and condition or nil)
+            end,
+            desc = "Conditional Breakpoint",
+        },
+        {
+            "<leader>dt",
             function()
                 require("dap").terminate()
             end,
@@ -325,12 +339,67 @@ M.definitions = {
             desc = "Step Over",
         },
         {
+            "<leader>dO",
+            function()
+                require("dap").step_out()
+            end,
+            desc = "Step Out",
+        },
+        {
+            "<leader>dl",
+            function()
+                require("dap").run_last()
+            end,
+            desc = "Run Last",
+        },
+        {
+            "<leader>dh",
+            function()
+                require("dap.ui.widgets").hover()
+            end,
+            desc = "Hover Value",
+            mode = { "n", "v" },
+        },
+        {
             "<leader>du",
             function()
                 require("dapui").toggle()
             end,
             desc = "Toggle DAP UI",
         },
+        {
+            "<leader>drr",
+            function()
+                require("plugins.core.debugger").debug_run()
+            end,
+            desc = "Run Target",
+        },
+        {
+            "<leader>drt",
+            function()
+                require("plugins.core.debugger").debug_test()
+            end,
+            desc = "Run Test",
+        },
+        {
+            "<leader>dra",
+            function()
+                require("plugins.core.debugger").debug_attach()
+            end,
+            desc = "Attach",
+        },
+        {
+            "<leader>drp",
+            function()
+                require("plugins.core.debugger").debug_pick()
+            end,
+            desc = "Pick Target",
+        },
+    },
+
+    debug_run = {
+        name = "+Debug Run",
+        prefix = "<leader>dr",
     },
 
     -- Search & Replace (Spectre)
@@ -516,9 +585,8 @@ M.definitions = {
         },
     },
 
-    -- ToDo Comment View — uses TodoTrouble (respects .gitignore, skips build/
-    -- node_modules/.git automatically). Previous `vimgrep ... **/*` recursed
-    -- into generated artifacts and stalled on Gradle/JS projects.
+    -- PERF: TodoTrouble respects .gitignore and skips generated directories.
+    -- Plain vimgrep over **/* stalled on Gradle and JS projects.
     todo = {
         name = "+Todo",
         prefix = "<leader>o",
@@ -602,16 +670,12 @@ M.definitions = {
             desc = "Toggle Watch (File)",
         },
         {
-            "<leader>tT",
+            "<leader>tq",
             function()
                 require("neotest").run.stop()
             end,
             desc = "Stop",
         },
-        -- `<leader>td` (Debug Nearest via DAP) intentionally absent.
-        -- Java DAP requires jdtls bundles (java-debug + vscode-java-test JARs)
-        -- which aren't yet provisioned. Wire those up in lsp.lua + debugger.lua
-        -- before exposing a DAP keymap that would silently fail for Java.
         {
             "<leader>ta",
             function()
@@ -743,7 +807,7 @@ M.definitions = {
         name = "+Window",
         prefix = "<leader>w",
         {
-            "<leader>wz",
+            "<leader>wf",
             function()
                 require("plugins.navigation.window").toggle_fullscreen()
             end,
@@ -896,7 +960,7 @@ local function get_keys(group_name, filter)
         return keys
     end
 
-    -- NOTE: plugin spec 이 한 group 의 일부 key 만 lazy-load 하도록 필터 지원.
+    -- NOTE: plugin spec 이 group 일부 key 만 lazy-load 하도록 필터 지원.
     for _, item in ipairs(group) do
         -- Skip metadata fields
         if type(item) == "table" and item[1] and (not filter or filter(item)) then
