@@ -44,10 +44,8 @@ local function require_executable(name)
     end
 end
 
--- Find the Java test buffer the user invoked OverseerRun from. The Snacks
--- picker shifts focus before overseer's builder runs, so we can't rely on the
--- "current" window/buffer at builder time. Still in use by the
--- `Gradle: Test (Current Class)` template; per-method runs moved to neotest.
+-- NOTE: find the Java test buffer that invoked OverseerRun. Snacks picker moves
+-- focus before the builder runs, so current window/buffer is unreliable.
 local function find_java_test_window()
     local function as_target(bufnr)
         if not bufnr or bufnr <= 0 then
@@ -121,14 +119,8 @@ local function default_components()
     }
 end
 
--- For Gradle test runs:
---   • `open_output` re-pops the output panel on failure so the assertion
---     message + stack trace are visible the moment the task ends.
---   • `on_output_quickfix` parses `    at pkg.Class.m(File.java:42)` lines
---     into the quickfix list + LSP-style diagnostics (best-effort file
---     resolution against the project root). `:copen` to navigate.
---   • On failure, chain-open the Gradle HTML report — the canonical
---     IDE-style view with expected vs actual and clickable stack frames.
+-- NOTE: Gradle failures reopen output, parse stack frames into quickfix, and
+-- chain-open the HTML report for expected/actual details.
 local OPENER = (vim.uv or vim.loop).os_uname().sysname == "Darwin" and "open" or "xdg-open"
 
 local function gradle_test_components(root)
@@ -152,9 +144,7 @@ local function gradle_test_components(root)
     }
 end
 
--- Wrap a Gradle `cmd` list so that on non-zero exit the HTML test report is
--- opened in the system browser. Exit code is preserved so overseer marks the
--- task FAILURE correctly.
+-- NOTE: preserve the Gradle exit code while opening the HTML report on failure.
 local function with_report_on_failure(root, cmd)
     local quoted = {}
     for _, a in ipairs(cmd) do
@@ -203,8 +193,8 @@ local templates = {
             local cmd = run_cmds[ft] and vim.list_extend({ unpack(run_cmds[ft]) }, { file }) or { file }
             local cwd = nil
             if ft == "c" then
-                -- NOTE: 단일 C 파일 실행은 임시 binary 를 만들고 trap 으로 정리한다.
-                -- project build system 이 없는 scratch 파일을 빠르게 실행하기 위한 경로다.
+                -- NOTE: 단일 C 실행은 임시 binary 를 trap 으로 정리한다.
+                -- project build system 이 없는 scratch 파일용 빠른 경로다.
                 local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
                 cmd = {
                     "sh",
@@ -220,8 +210,8 @@ local templates = {
             elseif ft == "rust" then
                 local root = get_cargo_root()
                 if root then
-                    -- NOTE: Cargo project 안에서는 current file 이 아니라 package entrypoint 를 실행한다.
-                    -- 단일 파일 rustc 경로는 Cargo.toml 이 없을 때만 fallback 한다.
+                    -- NOTE: Cargo project 에서는 package entrypoint 를 실행.
+                    -- 단일 파일 rustc 경로는 Cargo.toml 없을 때만 fallback.
                     cmd = { "cargo", "run" }
                     cwd = root
                 else
@@ -243,9 +233,8 @@ local templates = {
         end,
         condition = { filetype = vim.tbl_keys(run_cmds) },
     },
-    -- overseer.SearchCondition only honors `filetype` and `dir` — any
-    -- `condition.callback` is silently ignored. Defensive checks therefore live
-    -- in `builder` and error out clearly when prerequisites are missing.
+    -- WARN: overseer.SearchCondition only honors `filetype` and `dir`.
+    -- Defensive checks live in builder because condition.callback is ignored.
     {
         name = "Java: Compile & Run (Single File)",
         builder = function()
@@ -309,9 +298,8 @@ local templates = {
         end,
         condition = { filetype = { "java" } },
     },
-    -- Method-level test runs handled by Neotest (see lua/plugins/core/test.lua):
-    -- overseer's API doesn't model per-test execution (no cursor context, no
-    -- gutter signs, no per-test status). neotest-java owns that workflow.
+    -- NOTE: neotest-java owns method-level test runs because Overseer has no
+    -- cursor context, gutter signs, or per-test status model.
     {
         name = "Cargo: Run",
         builder = function()
@@ -414,8 +402,8 @@ return {
             group = group,
             pattern = "OverseerOutput",
             callback = function(args)
-                -- NOTE: Overseer output 은 float/terminal 양쪽에서 열릴 수 있다.
-                -- buffer-local q/Esc 로 같은 buffer 를 보여주는 모든 window 를 닫는다.
+                -- NOTE: Overseer output 은 float/terminal 양쪽에서 열린다.
+                -- buffer-local q/Esc 로 같은 buffer 의 모든 window 를 닫는다.
                 local close_output = function()
                     for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do
                         if vim.api.nvim_win_is_valid(win) then
