@@ -13,6 +13,21 @@ return {
         keys = function()
             return require("config.keymaps").bind("todo")
         end,
-        opts = {},
+        opts = {
+            keywords = {
+                COMPAT = { icon = "C ", color = "hint", alt = { "VERSION" } },
+            },
+        },
+    },
+    {
+        "junegunn/vim-easy-align",
+        event = "VeryLazy",
+        keys = function()
+            return require("config.keymaps").bind("align")
+        end,
+        config = function() end,
+    },
+    {
+        "mg979/vim-visual-multi",
     },
 }
