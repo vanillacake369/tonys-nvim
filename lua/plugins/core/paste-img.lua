@@ -13,8 +13,7 @@ end
 local uv = vim.uv or vim.loop
 
 local CONFIG_FILES = {
-    ".markdown-assets.json",
-    ".nvim/markdown-assets.json",
+    "md-rule.toml",
 }
 
 local IMAGE_EXTENSIONS = {
@@ -88,14 +87,86 @@ local function read_json(path)
     return nil
 end
 
+local function to_camel_case(key)
+    return key:gsub("_([a-z])", function(char)
+        return char:upper()
+    end)
+end
+
+local function parse_toml_value(value)
+    value = vim.trim(value)
+    if value:sub(1, 1) == "[" and value:sub(-1) == "]" then
+        local items = {}
+        local body = vim.trim(value:sub(2, -2))
+        if body == "" then
+            return items
+        end
+        for item in body:gmatch("[^,]+") do
+            item = vim.trim(item):gsub('^"', ""):gsub('"$', "")
+            table.insert(items, item)
+        end
+        return items
+    end
+    return value:gsub('^"', ""):gsub('"$', "")
+end
+
+local function read_toml(path)
+    if vim.fn.filereadable(path) ~= 1 then
+        return nil
+    end
+
+    local data = {}
+    local section = nil
+    for _, raw_line in ipairs(vim.fn.readfile(path)) do
+        local line = vim.trim(raw_line:gsub("#.*$", ""))
+        if line ~= "" then
+            local section_name = line:match("^%[([A-Za-z0-9_-]+)%]$")
+            if section_name then
+                section = section_name
+                data[section] = data[section] or {}
+            else
+                local key, value = line:match("^([A-Za-z0-9_-]+)%s*=%s*(.+)$")
+                if key and value and section then
+                    data[section][to_camel_case(key)] = parse_toml_value(value)
+                end
+            end
+        end
+    end
+
+    if not (data.content and data.assets and data.identity) then
+        vim.notify("Markdown rule TOML parse failed: " .. path, vim.log.levels.WARN)
+        return nil
+    end
+
+    return {
+        kind = "astro-blog",
+        contentRoot = data.content.publicRoot,
+        privateContentRoot = data.content.privateRoot,
+        publicRoot = "public",
+        assetRoot = data.assets.publicRoot,
+        privateAssetRoot = data.assets.privateRoot,
+        publicUrlPrefix = data.assets.publicUrlPrefix,
+        legacyPublicUrlPrefix = data.assets.legacyUrlPrefixes and data.assets.legacyUrlPrefixes[1] or nil,
+        identity = data.identity.strategy,
+        grammar = data.identity.grammar,
+    }
+end
+
+local function read_config(path)
+    if path:match("%.toml$") then
+        return read_toml(path)
+    end
+    return read_json(path)
+end
+
 local function find_repo_config(start)
     -- NOTE: repo-local config 가 있으면 blog fallback 보다 항상 우선한다.
-    -- 일반 Markdown repo 에 tonys-blog URL 규칙이 섞이지 않게 하는 경계다.
+    -- 일반 Markdown repo 에 tonys-blog URL 규칙이 섞이지 않게 막는다.
     local dir = normalize_path(start)
     while dir and dir ~= "" do
         for _, name in ipairs(CONFIG_FILES) do
             local candidate = path_join(dir, name)
-            local config = read_json(candidate)
+            local config = read_config(candidate)
             if config then
                 config.root = dir
                 config.config_path = candidate
@@ -119,12 +190,12 @@ local function read_package_name(root)
 end
 
 local function find_tonys_blog_root(start)
-    -- NOTE: legacy fallback 은 명시 config 가 없는 tonys-blog 에만 적용한다.
-    -- 구조와 package name 을 같이 확인해서 다른 Astro repo 를 오탐하지 않는다.
+    -- NOTE: legacy fallback 은 tonys-blog 에만 적용한다.
+    -- 구조와 package name 으로 다른 Astro repo 오탐을 막는다.
     local dir = normalize_path(start)
     while dir and dir ~= "" do
         local has_astro = file_exists(path_join(dir, "astro.config.mjs"))
-        local has_posts = is_dir(path_join(dir, "src/content/posts"))
+        local has_posts = is_dir(path_join(dir, "src/content/posts/public"))
         local has_public_images = is_dir(path_join(dir, "public/images"))
         if has_astro and has_posts and has_public_images and read_package_name(dir) == "tonys-blog" then
             return dir
@@ -161,7 +232,7 @@ end
 
 local function sanitize_filename(name)
     -- NOTE: clipboard filename 은 Markdown link 와 filesystem 양쪽에 들어간다.
-    -- 숨김 파일/확장자 없는 이름/비이미지 확장자는 안전한 png 이름으로 정규화한다.
+    -- 숨김 파일, 무확장자, 비이미지 확장자는 png 로 정규화.
     local fallback = os.date("%Y-%m-%d-%H-%M-%S")
     local cleaned = sanitize_segment(name, fallback)
     cleaned = cleaned:gsub("^%.+", "")
@@ -196,6 +267,51 @@ local function strip_prefix(value, prefix)
     return nil
 end
 
+local function split_path(path)
+    local parts = {}
+    for part in normalize_path(path):gmatch("[^/]+") do
+        table.insert(parts, part)
+    end
+    return parts
+end
+
+local function relative_path(from_dir, to_path)
+    local from_parts = split_path(from_dir)
+    local to_parts = split_path(to_path)
+    local index = 1
+    while from_parts[index] and to_parts[index] and from_parts[index] == to_parts[index] do
+        index = index + 1
+    end
+
+    local rel = {}
+    for _ = index, #from_parts do
+        table.insert(rel, "..")
+    end
+    for i = index, #to_parts do
+        table.insert(rel, to_parts[i])
+    end
+
+    if #rel == 0 then
+        return "."
+    end
+    return table.concat(rel, "/")
+end
+
+local function path_relative_to_root(root, path)
+    local rel = strip_prefix(normalize_path(path), normalize_path(root) .. "/")
+    return rel
+end
+
+local function is_git_ignored(root, path)
+    local rel = path_relative_to_root(root, path)
+    if not rel then
+        return false
+    end
+
+    local result = vim.system({ "git", "-C", root, "check-ignore", "-q", "--", rel }):wait()
+    return result and result.code == 0
+end
+
 local function buffer_path(bufnr)
     bufnr = bufnr or 0
     local path = vim.api.nvim_buf_get_name(bufnr)
@@ -214,6 +330,20 @@ local function file_identity(path)
     return sanitize_segment(stem(path), "untitled")
 end
 
+local function path_identity(root, path)
+    local rel = strip_prefix(normalize_path(path), normalize_path(root) .. "/")
+    if not rel then
+        return file_identity(path)
+    end
+
+    rel = rel:gsub("%.mdx?$", "")
+    local parts = {}
+    for part in rel:gmatch("[^/]+") do
+        table.insert(parts, sanitize_segment(part, "untitled"))
+    end
+    return table.concat(parts, "/")
+end
+
 local function default_plain_context(path)
     local identity = file_identity(path)
     return {
@@ -228,9 +358,27 @@ local function default_plain_context(path)
 end
 
 local function context_from_config(path, config)
-    -- NOTE: configured repo 라도 contentRoot 밖 파일에는 repo URL 정책을 적용하지 않는다.
-    -- 임시 메모나 README 에 public asset path 가 잘못 들어가는 것을 막는다.
+    -- NOTE: configured repo 라도 contentRoot 밖 파일에는 repo URL 정책을
+    -- 적용하지 않는다. 잘못된 public path 생성을 막는다.
     local root = normalize_path(config.root)
+    local private_root = config.privateContentRoot and normalize_path(path_join(root, config.privateContentRoot)) or nil
+    local identity = private_root and path_identity(private_root, path) or file_identity(path)
+
+    if is_git_ignored(root, path) then
+        local asset_root = config.privateAssetRoot or "private-images/posts"
+        local asset_dir = normalize_path(path_join(root, asset_root, identity))
+        return {
+            kind = "private-markdown",
+            file = path,
+            root = root,
+            config = config,
+            identity = identity,
+            asset_dir = asset_dir,
+            plain_link_prefix = relative_path(dirname(path), asset_dir),
+            private = true,
+        }
+    end
+
     local content_root = config.contentRoot and normalize_path(path_join(root, config.contentRoot)) or nil
     local kind = config.kind or "configured"
 
@@ -241,7 +389,7 @@ local function context_from_config(path, config)
         end
     end
 
-    local identity = file_identity(path)
+    identity = content_root and path_identity(content_root, path) or file_identity(path)
     local asset_root = config.assetRoot or "assets"
     local asset_dir = normalize_path(path_join(root, asset_root, identity))
     local url_prefix = config.publicUrlPrefix
@@ -261,12 +409,12 @@ local function context_from_config(path, config)
 end
 
 local function context_from_tonys_blog(path, root)
-    local posts_root = normalize_path(path_join(root, "src/content/posts"))
+    local posts_root = normalize_path(path_join(root, "src/content/posts/public"))
     if not strip_prefix(path, posts_root .. "/") then
         return default_plain_context(path)
     end
 
-    local identity = file_identity(path)
+    local identity = path_identity(posts_root, path)
     return {
         kind = "tonys-blog-fallback",
         file = path,
@@ -293,7 +441,7 @@ function M.get_context_for_path(path)
     path = normalize_path(path)
 
     -- NOTE: 우선순위는 explicit config -> tonys-blog fallback -> plain Markdown.
-    -- 새 repo 는 .markdown-assets.json 으로 정책을 명시하는 쪽이 안전하다.
+    -- 새 repo 는 md-rule.toml 로 정책을 명시하는 쪽이 안전하다.
     local config = find_repo_config(dirname(path))
     if config then
         return context_from_config(path, config)
@@ -310,7 +458,7 @@ end
 local function markdown_link_for(ctx, image_path)
     image_path = normalize_path(image_path)
 
-    -- NOTE: 저장 위치가 관리 asset_dir 안이면 repo 정책 URL 을 사용한다.
+    -- NOTE: 저장 위치가 asset_dir 안이면 repo 정책 URL 을 사용한다.
     -- 밖에 저장된 파일은 Neovim 의 상대경로 계산으로 fallback 한다.
     if ctx.markdown_link_prefix and strip_prefix(image_path, normalize_path(ctx.asset_dir) .. "/") then
         return ctx.markdown_link_prefix .. "/" .. basename(image_path)
@@ -416,8 +564,8 @@ local function trim_link_target(target)
 end
 
 function M.resolve_target_for_path(target, path)
-    -- NOTE: Markdown target 을 에디터에서 열 수 있는 local file 로 해석한다.
-    -- absolute filesystem path, public URL prefix, 현재 파일 상대경로 순서로만 허용한다.
+    -- NOTE: Markdown target 을 에디터에서 열 수 있는 local file 로 해석.
+    -- absolute path, public URL prefix, 현재 파일 상대경로만 허용한다.
     target = trim_link_target(target)
     if target == "" then
         return nil, "empty target"
@@ -439,8 +587,8 @@ function M.resolve_target_for_path(target, path)
         end
 
         if ctx and ctx.public_root then
-            -- NOTE: `/images/...` 같은 site-root URL 은 publicRoot 가 명시된 context 에서만
-            -- local file 로 매핑한다. 임의 root URL 은 잘못 열지 않고 거부한다.
+            -- WARN: map site-root URLs like `/images/...` only when publicRoot
+            -- is explicit. Reject arbitrary root URLs instead of guessing.
             local prefixes = vim.tbl_filter(function(v)
                 return v and v ~= ""
             end, { ctx.public_url_prefix, ctx.legacy_public_url_prefix })
@@ -526,7 +674,7 @@ end
 function M.resolve_for_snacks(file, src)
     if file and file ~= "" then
         -- PERF: Snacks image resolver 는 render/scroll 중 반복 호출된다.
-        -- 실패도 false 로 캐시해 같은 깨진 링크를 계속 stat 하지 않는다.
+        -- 실패도 false 로 캐시해 깨진 링크를 반복 stat 하지 않는다.
         local key = normalize_path(file) .. "\n" .. tostring(src)
         local cached = M.cache.resolved_paths[key]
         if cached ~= nil then
@@ -585,7 +733,7 @@ end
 
 local function collect_headings(bufnr)
     -- NOTE: preview/outline 용 heading 만 수집한다.
-    -- frontmatter 와 fenced code 안의 # 문자는 문서 구조가 아니므로 제외한다.
+    -- frontmatter 와 fenced code 안의 # 문자는 문서 구조에서 제외한다.
     bufnr = bufnr or 0
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
     local headings = {}
@@ -650,8 +798,8 @@ function M.open_heading_outline()
             title = "Markdown Headings",
             items = items,
             format = "text",
-            -- NOTE: 빈 query 상태에서는 preview 와 같은 위->아래 문서 순서를 유지한다.
-            -- fuzzy match 결과가 있을 때만 matcher 가 표시 범위를 좁히게 둔다.
+            -- NOTE: 빈 query 는 preview 와 같은 문서 순서를 유지한다.
+            -- fuzzy match 결과가 있을 때만 표시 범위를 좁힌다.
             matcher = { sort = false },
             sort = { fields = { "sort" } },
             confirm = function(picker, item)
@@ -693,7 +841,7 @@ function M.open_astro_preview()
         return
     end
 
-    local content_root = path_join(ctx.root, "src/content/posts")
+    local content_root = path_join(ctx.root, ctx.config and ctx.config.contentRoot or "src/content/posts/public")
     local rel = strip_prefix(ctx.file, normalize_path(content_root) .. "/")
     if not rel then
         vim.notify("현재 파일이 posts content root 아래에 없습니다.", vim.log.levels.WARN)
