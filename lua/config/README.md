@@ -12,7 +12,6 @@ lua/config/
   options.lua    editor defaults
   lazy.lua       lazy.nvim bootstrap and plugin import root
   clipboard.lua  clipboard provider
-  languages.lua  language tooling registry
 ```
 
 `init.lua`는 이 layer 를 아래 순서로 로드합니다.
@@ -42,18 +41,18 @@ Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 �
 
 터미널 환경에서 clipboard provider 를 설정합니다. SSH, tmux, zellij, WezTerm 같은 실행 환경 차이가 생기기 쉬운 영역이므로 동작 변경 시 실제 터미널에서 확인합니다.
 
-`languages.lua`
-
-언어별 LSP, Treesitter, formatter, linter 선언을 모읍니다. 일반적인 언어는 이 registry 에 추가하고, 별도 lifecycle 이 필요한 언어만 `lua/plugins/core/lsp-*.lua`로 분리합니다.
-
 ## Design Rules
 
 - README 에 option table, keymap table, language matrix 를 두지 않는다.
 - 코드와 같은 내용을 문서에 반복하지 않는다.
-- 설정 이유가 중요한 경우 Lua 파일 근처에 `NOTE:`, `PERF:`, `TODO:` 주석으로 남긴다.
+- 설정 이유가 중요한 경우 Lua 파일 근처에 tagged line comment 로 남긴다.
+- 2줄 이상 주석도 `--[[ ... ]]` 대신 각 줄을 `--`로 시작한다.
+- 첫 줄 tag 는 `NOTE:`, `PERF:`, `TODO:`, `FIXME:`, `HACK:`, `WARN:`, `COMPAT:` 중에서 고른다.
+- comment block 은 직접 88 columns 안쪽으로 감싼다.
 - 새 keymap 은 `desc`를 갖게 해서 which-key 와 picker 에서 의도가 드러나게 한다.
 - plugin lazy-load 와 buffer-local attach 에 필요한 keymap group 은 `keymaps.bind(...)` adapter 를 사용한다.
-- language tooling 은 먼저 `languages.lua` registry 에 넣고, plugin-specific attach/lifecycle 이 필요할 때만 별도 module 로 뺀다.
+- language tooling 과 언어별 filetype detection 은 `lua/plugins/lang/*.lua` vertical slice 에 둔다.
+- 공통 LSP/DAP/format/lint 엔진은 `lua/plugins/core/*.lua`에 얕게 유지한다.
 
 ## Change Checklist
 
@@ -63,14 +62,14 @@ Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 �
 - Editor option 변경: [options.lua](options.lua)
 - Plugin import/bootstrap 변경: [lazy.lua](lazy.lua)
 - Clipboard 변경: [clipboard.lua](clipboard.lua)
-- Language tooling 변경: [languages.lua](languages.lua)
+- Language tooling 변경: [../plugins/lang](../plugins/lang)
 
 검증은 변경 범위에 맞게 좁게 시작합니다.
 
 ```bash
 luac -p lua/config/keymaps.lua
-luac -p lua/config/languages.lua
-stylua lua/config/keymaps.lua lua/config/languages.lua
+luac -p lua/plugins/lang/rust.lua
+stylua lua/config/keymaps.lua lua/plugins/lang/rust.lua
 ```
 
 Neovim runtime 이 필요한 변경은 headless require 또는 `:checkhealth`로 확인합니다.
