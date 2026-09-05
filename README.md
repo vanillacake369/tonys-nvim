@@ -11,7 +11,8 @@ README 는 이 repo 의 방향, 구조, 운영 원칙만 설명합니다. 플러
 - keymap, language tooling, plugin spec 은 문서에 복제하지 않는다. 코드가 유일한 명세다.
 - terminal image preview 처럼 터미널/멀티플렉서 제약을 타는 기능은 기본값을 보수적으로 둔다.
 - Markdown preview 는 Neovim inline 기능보다 browser preview 를 우선한다. zellij/wezterm 환경에서 image protocol 의 불안정성을 줄이기 위함이다.
-- Java, Rust 처럼 일반 LSP 흐름과 다른 lifecycle 이 필요한 언어는 별도 plugin module 로 분리한다.
+- Java, Rust 처럼 일반 LSP 흐름과 다른 lifecycle 이 필요한 언어는 `plugins/lang`
+  vertical slice 에서 소유한다.
 
 ## Architecture
 
@@ -24,13 +25,13 @@ init.lua
 
 lua/config/
   keymaps.lua    keymap registry
-  languages.lua  language tooling registry
   options.lua    editor defaults
   lazy.lua       lazy.nvim bootstrap
   clipboard.lua  clipboard provider
 
 lua/plugins/
-  core/          editing, LSP, format, lint, test, runner, language-specific logic
+  core/          shared editing, LSP, DAP, format, lint, test, runner behavior
+  lang/          vertical language slices for LSP, DAP, parser, lint, format ownership
   navigation/    picker, explorer, window/session/navigation workflow
   ui/            theme, bufferline, Markdown/browser preview
 ```
@@ -38,12 +39,11 @@ lua/plugins/
 ## Source Of Truth
 
 - Keymaps: [lua/config/keymaps.lua](lua/config/keymaps.lua)
-- Language tooling registry: [lua/config/languages.lua](lua/config/languages.lua)
+- Language slices: [lua/plugins/lang](lua/plugins/lang)
 - LSP attach/save policy: [lua/plugins/core/lsp.lua](lua/plugins/core/lsp.lua)
-- Java lifecycle: [lua/plugins/core/lsp-java.lua](lua/plugins/core/lsp-java.lua)
-- Rust lifecycle: [lua/plugins/core/lsp-rust.lua](lua/plugins/core/lsp-rust.lua)
-- Formatter policy: [lua/plugins/core/format.lua](lua/plugins/core/format.lua)
-- Linter policy: [lua/plugins/core/lint.lua](lua/plugins/core/lint.lua)
+- DAP core/UI policy: [lua/plugins/core/debugger.lua](lua/plugins/core/debugger.lua)
+- Formatter engine policy: [lua/plugins/core/format.lua](lua/plugins/core/format.lua)
+- Linter engine policy: [lua/plugins/core/lint.lua](lua/plugins/core/lint.lua)
 - Markdown asset workflow: [lua/plugins/core/paste-img.lua](lua/plugins/core/paste-img.lua)
 - Markdown inline/image preview: [lua/plugins/ui/preview.lua](lua/plugins/ui/preview.lua)
 - Browser preview: [lua/plugins/ui/browser-preview.lua](lua/plugins/ui/browser-preview.lua)
@@ -54,11 +54,19 @@ lua/plugins/
 
 - editor 기본값이면 `lua/config/options.lua`
 - keymap 이면 `lua/config/keymaps.lua`
-- 언어별 LSP/formatter/linter registry 항목이면 `lua/config/languages.lua`
+- 언어별 filetype/LSP/DAP/parser/formatter/linter/test 설정이면 `lua/plugins/lang/*.lua`
 - 일반 plugin spec 이면 `lua/plugins/core`, `lua/plugins/navigation`, `lua/plugins/ui` 중 가장 가까운 곳
-- 일반 LSP 흐름과 충돌하는 언어 lifecycle 이면 `lua/plugins/core/lsp-*.lua`
+- 공통 엔진 동작이면 `lua/plugins/core/*.lua`
 
-문서에는 새 기능 목록을 추가하지 않습니다. 복잡한 의도나 제약은 해당 Lua 파일 근처에 `NOTE:`, `PERF:`, `TODO:` 같은 comment tag 로 남깁니다.
+문서에는 새 기능 목록을 추가하지 않습니다. 복잡한 의도나 제약은 해당 Lua 파일 근처에 comment tag 로 남깁니다.
+
+## Comment Convention
+
+- 2줄 이상이어도 `--[[ ... ]]` block comment 를 쓰지 않는다.
+- 여러 줄 설명은 각 줄을 `--`로 시작하는 line comment block 으로 쓴다.
+- 첫 줄은 가능하면 `NOTE:`, `PERF:`, `TODO:`, `FIXME:`, `HACK:`, `WARN:`, `COMPAT:` 중 하나로 시작한다.
+- `NOTE:`는 설계 이유, `PERF:`는 성능 이유, `WARN:`은 변경 위험, `COMPAT:`은 버전/환경 호환성에 쓴다.
+- comment block 은 직접 88 columns 안쪽으로 감싼다. `textwidth` option 은 강제하지 않는다.
 
 ## Runtime Notes
 
