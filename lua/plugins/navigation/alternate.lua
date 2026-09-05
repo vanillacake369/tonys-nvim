@@ -1,26 +1,12 @@
--- Source ↔ Test file navigation (alternate file).
---
--- Strategy: other.nvim pattern matching for all file-based languages,
--- treesitter in-file jump for Rust (idiomatic inline `#[cfg(test)] mod tests`).
---
--- We previously dispatched to `jdtls.tests.goto_subjects()` for Java/Kotlin
--- (multi-module accuracy + auto-generate via vscode-java-test bundle), but it
--- needs the `vscode-java-test` JDTLS bundle installed — without it the LSP
--- command fails asynchronously *past* any pcall guard, leaving the user with
--- an opaque error. Until that bundle is wired in, one path is simpler and
--- always works. Add the dispatch back once the bundle ships.
---
--- Newly-created test files get a templated skeleton via other.nvim's
--- `onOpenFile` hook (the plugin itself has no `template` field).
---
--- Keymap (single): <leader>ta — Jump to alternate (or surface picker with a
--- `(new)` entry when missing; selecting it creates the file with template).
+-- NOTE: Source/test alternate navigation uses other.nvim pattern matching for
+-- file-based languages, plus treesitter for Rust inline `mod tests`.
+-- COMPAT: Java/Kotlin previously used `jdtls.tests.goto_subjects()`, but it
+-- fails asynchronously without the `vscode-java-test` bundle installed.
+-- NOTE: Newly-created test files get a skeleton via other.nvim's `onOpenFile`.
 
 local M = {}
 
--- ─────────────────────────────────────────────────────────────────────────
--- Path helpers (compute Java package + class name from src/test path).
--- ─────────────────────────────────────────────────────────────────────────
+-- NOTE: Path helpers compute Java package and class names from src/test paths.
 
 local function derive_java_package(filename)
     local rel = filename:match("/src/[^/]+/java/(.*)/[^/]+%.java$")
@@ -48,9 +34,7 @@ local function go_package(filename)
     return vim.fn.fnamemodify(dir, ":t")
 end
 
--- ─────────────────────────────────────────────────────────────────────────
--- Template content for newly-created test files.
--- ─────────────────────────────────────────────────────────────────────────
+-- NOTE: Template content for newly-created test files.
 
 local templates = {
     java = function(filename)
@@ -152,9 +136,7 @@ local function write_template(filename)
     end)
 end
 
--- ─────────────────────────────────────────────────────────────────────────
--- Rust: in-file jump to `#[cfg(test)] mod tests` block.
--- ─────────────────────────────────────────────────────────────────────────
+-- NOTE: Rust jumps inside the current file to `#[cfg(test)] mod tests`.
 
 local function rust_jump_to_test_block()
     local bufnr = vim.api.nvim_get_current_buf()
@@ -204,9 +186,7 @@ local function rust_jump_to_test_block()
     vim.api.nvim_win_set_cursor(0, { line_count + 3, 0 })
 end
 
--- ─────────────────────────────────────────────────────────────────────────
--- Dispatch entry points (called from keymaps.lua).
--- ─────────────────────────────────────────────────────────────────────────
+-- NOTE: Dispatch entry points are called from keymaps.lua.
 
 function M.jump()
     if vim.bo.filetype == "rust" then
@@ -216,16 +196,14 @@ function M.jump()
     vim.cmd("Other")
 end
 
--- ─────────────────────────────────────────────────────────────────────────
--- other.nvim plugin spec.
--- ─────────────────────────────────────────────────────────────────────────
+-- NOTE: other.nvim plugin spec.
 
 return {
     {
         "rgroli/other.nvim",
         cmd = { "Other", "OtherSplit", "OtherVSplit", "OtherTabNew", "OtherClear" },
-        -- Expose dispatcher to keymaps.lua via a global table (keymaps.lua
-        -- loads at startup, before lazy resolves this plugin).
+        -- NOTE: Expose dispatcher to keymaps.lua via a global table because
+        -- keymaps.lua loads at startup, before lazy resolves this plugin.
         init = function()
             _G.__alternate = M
         end,
@@ -279,10 +257,10 @@ return {
                 },
             },
             hooks = {
-                -- Drop nonsense matches like `foo_test_test.go` or
-                -- `tests/test_test_foo.py` that arise when src→test mappings
-                -- fire on files already named as tests. Lua patterns can't
-                -- express negative lookbehind, so post-filter here.
+                -- NOTE: Drop nonsense matches like `foo_test_test.go` or
+                -- `tests/test_test_foo.py` when src->test mappings fire on
+                -- files already named as tests. Lua patterns can't express
+                -- negative lookbehind, so post-filter here.
                 onFindOtherFiles = function(matches)
                     local current = vim.fn.expand("%:p")
                     return vim.tbl_filter(function(m)
@@ -301,8 +279,8 @@ return {
                         return true
                     end, matches)
                 end,
-                -- Fill freshly-created test files with a language-aware skeleton.
-                -- Return true to let other.nvim still handle opening the file.
+                -- NOTE: Fill freshly-created test files with a language-aware
+                -- skeleton and let other.nvim still handle opening the file.
                 onOpenFile = function(filename, exists)
                     if not exists then
                         write_template(filename)

@@ -88,8 +88,8 @@ return {
                 preset = "default",
             },
 
-            -- Sources
-            -- NOTE: Copilot 통합은 blink.cmp provider 경로로만 사용.
+            -- NOTE: Sources include Copilot only through the blink.cmp
+            -- provider path.
             sources = {
                 default = { "lazydev", "lsp", "path", "snippets", "buffer", "copilot" },
                 providers = {

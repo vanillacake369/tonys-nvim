@@ -16,8 +16,7 @@ vim.opt.mouse = "a"
 -- Wrap
 vim.opt.wrap = false
 
--- Incremental Search
--- Case insensitive Search
+-- NOTE: search is incremental and case-insensitive unless uppercase is typed.
 vim.opt.hlsearch = true
 vim.opt.incsearch = true
 vim.opt.ignorecase = true

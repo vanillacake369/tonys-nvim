@@ -15,8 +15,8 @@ end
 local group = vim.api.nvim_create_augroup("MarkdownPreview", { clear = true })
 
 local function auto_image_preview_enabled()
-    -- NOTE: zellij/wezterm 조합에서는 terminal image protocol 이 안정적이지 않다.
-    -- inline image preview 는 explicit opt-in 으로 두고 기본 preview 는 browser 가 담당한다.
+    -- WARN: terminal image protocol is unstable in zellij/wezterm sessions.
+    -- Inline image preview stays opt-in; browser preview is the default.
     return vim.g.markdown_image_auto_preview == true
 end
 
@@ -31,8 +31,8 @@ local function is_markdown_buffer(bufnr)
 end
 
 local function remove_snacks_doc_autocmds(bufnr)
-    -- NOTE: Snacks image doc attach 는 buffer-local autocmd 를 만든다.
-    -- 수동 disable/refresh 시 placement 만 지우면 다시 살아날 수 있어 augroup 도 정리한다.
+    -- NOTE: Snacks image doc attach creates buffer-local autocmds. Clear the
+    -- augroup too, otherwise placements can return after manual disable/refresh.
     pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.inline." .. bufnr)
     pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.doc." .. bufnr)
 end
@@ -87,8 +87,8 @@ function M.refresh(bufnr)
         return
     end
 
-    -- NOTE: image path resolver cache 와 Snacks placement 를 같이 비워야
-    -- rename/move 된 asset 이 같은 buffer 에서 즉시 다시 해석된다.
+    -- NOTE: clear resolver cache and Snacks placements together so renamed or
+    -- moved assets resolve immediately in the same buffer.
     require("plugins.core.paste-img").clear_caches(bufnr)
     M.disable(bufnr)
     M.enable(bufnr)

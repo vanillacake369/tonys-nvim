@@ -1,16 +1,14 @@
--- Normal Mode 에서 c,cc,d,dd 시
--- clipboard 로 넘어가지 않게
--- unnamed register 를 비활성화하고
--- black hole register 사용
+-- NOTE: disable unnamed clipboard so normal-mode c/cc/d/dd do not overwrite
+-- the system clipboard. Deletes use the black-hole register instead.
 vim.keymap.set("n", "d", '"_d')
 vim.keymap.set("n", "dd", '"_dd')
 
--- 시스템 클립보드 연동
+-- NOTE: enable explicit system clipboard access through +/* registers.
 vim.opt.clipboard = "unnamedplus"
 
--- 플랫폼별 클립보드 설정
+-- NOTE: choose the clipboard provider by launch platform.
 if vim.fn.has("mac") == 1 then
-    -- macOS: pbcopy/pbpaste
+    -- NOTE: macOS uses pbcopy/pbpaste.
     vim.g.clipboard = {
         name = "macOS-clipboard",
         copy = {
@@ -24,7 +22,7 @@ if vim.fn.has("mac") == 1 then
         cache_enabled = 0,
     }
 elseif vim.fn.has("wsl") == 1 then
-    -- WSL: Windows 클립보드 사용
+    -- NOTE: WSL uses the Windows clipboard bridge.
     vim.g.clipboard = {
         name = "WslClipboard",
         copy = {

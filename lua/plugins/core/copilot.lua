@@ -1,8 +1,6 @@
--- GitHub Copilot Integration
--- AI-powered code completion and suggestions
+-- NOTE: GitHub Copilot provides AI completion through blink.cmp.
 
--- 인증 체크 로직
--- copilot 인증파일이 존재하지 않으면 return false
+-- NOTE: missing Copilot auth files mean the provider should stay disabled.
 local function is_copilot_authenticated()
     local paths = {
         vim.fn.expand("~/.config/github-copilot/hosts.json"),
@@ -32,7 +30,7 @@ return {
     "zbirenbaum/copilot.lua",
     event = { "InsertEnter", "VimEnter" },
     config = function()
-        -- .copilot-disable 파일이 있다면 copilot 비활성화
+        -- NOTE: .copilot-disable disables Copilot for the current project.
         local disable_file = vim.fn.findfile(".copilot-disable", ".;")
         if disable_file ~= "" then
             return
@@ -46,7 +44,7 @@ return {
                 enabled = false,
                 auto_refresh = false,
             },
-            -- copilot-lsp 를 비활성화하여 LSP 서버로서의 기능을 끔
+            -- NOTE: disable copilot-lsp so Copilot does not attach as an LSP.
             nes = {
                 enabled = false,
             },
@@ -58,11 +56,10 @@ return {
         -- end
         if not is_copilot_authenticated() then
             vim.defer_fn(function()
-                -- vim.notify("Copilot: Not authenticated! Run :Copilot auth", vim.log.levels.WARN)
                 vim.cmd("Copilot auth")
             end, copilot_init_time)
         end
-        -- 전역 커맨드 등록
+        -- NOTE: expose a manual auth-status check command.
         vim.api.nvim_create_user_command("CopilotAuthCheck", run_auth_check, {})
     end,
 }

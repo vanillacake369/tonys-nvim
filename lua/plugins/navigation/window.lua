@@ -105,8 +105,8 @@ local function has_editor_window()
 end
 
 local function close_explorer_if_orphaned()
-    -- NOTE: editor window 가 모두 닫히고 explorer picker 만 남으면 navigation target 이 없다.
-    -- orphaned explorer 는 자동으로 닫아 빈 picker tab 상태를 피한다.
+    -- NOTE: close an orphaned explorer when no editor window remains.
+    -- Otherwise there is no valid navigation target in the tab.
     local picker = get_snacks_picker("explorer")
     if not picker or has_editor_window() then
         return
@@ -118,8 +118,8 @@ local function close_explorer_if_orphaned()
 end
 
 local function reveal_or_open_explorer()
-    -- NOTE: 현재 buffer 를 reveal 할 수 있으면 기존 explorer 를 재사용하고,
-    -- reveal 실패 시에는 새 explorer picker 를 여는 fallback 을 둔다.
+    -- NOTE: reuse the explorer when it can reveal the current buffer.
+    -- Fall back to a fresh picker when reveal fails.
     local snacks = get_snacks()
     if not (snacks and snacks.explorer) then
         return nil
@@ -156,8 +156,8 @@ function M.toggle_fullscreen()
 end
 
 function M.toggle_focus()
-    -- NOTE: explorer focus toggle 의 우선순위는 picker -> 이전 editor -> 새 explorer 다.
-    -- Snacks window 와 일반 editor window 를 분리해 wincmd 순환의 예측 불가능성을 줄인다.
+    -- NOTE: focus toggles picker -> previous editor -> new explorer.
+    -- Keep Snacks windows separate from editor windows to avoid wincmd drift.
     if is_snacks_window(vim.api.nvim_get_current_win()) then
         if not focus_editor_window() then
             vim.cmd("wincmd p")
