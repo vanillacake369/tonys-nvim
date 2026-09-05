@@ -2,7 +2,7 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- C-d, C-u, C-f, C-b 에 따라 스크롤 시 커서 위치가 화면 중앙에 오도록 설정
+-- NOTE: C-d, C-u, C-f, C-b 스크롤 후 커서를 화면 중앙에 둔다.
 vim.keymap.set("n", "<C-d>", "<C-d>zz", { desc = "Scroll Half Page Down and Center" })
 vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Scroll Half Page Up and Center" })
 vim.keymap.set("n", "<C-f>", "<C-f>zz", { desc = "Scroll Full Page Down and Center" })
