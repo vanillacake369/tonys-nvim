@@ -11,16 +11,15 @@ return {
             end,
         })
     end,
-    opts = function()
-        local lang = require("config.languages")
-
-        -- 모든 언어에 공통으로 적용될 기본 포맷터 설정
-        -- (예: 코드 블록 내 주입된 코드 포맷팅)
+    opts = function(_, opts)
+        opts = opts or {}
+        -- NOTE: shared formatter defaults cover cross-language cases like
+        -- injected code blocks.
         local indent = 4
         local columnLimit = 85
 
-        -- Java clang-format style 공통 문자열
-        -- (args 와 range_args 양쪽에서 재사용되므로 변수로 추출)
+        -- NOTE: Java clang-format style is reused by full-buffer and range
+        -- formatting args.
         local java_style = "{ "
             .. "BasedOnStyle: Google, "
             .. "Language: Java, "
@@ -44,14 +43,8 @@ return {
             injected = {
                 options = { ignore_errors = true },
             },
-            -- Yaml: yamlfmt
-            -- retain_line_breaks_single -- 빈 줄 하나는 무조건 유지
-            -- retain_line_breaks_multi -- 빈 줄 여러 개도 유지
-            -- scan_folded_as_literal -- 긴 문자열 가독성 향상
-            -- include_document_start -- --- 문서 시작 유지
-            -- line-break-after-comment=true -- 주석 뒤에 줄바꿈
-            -- preserve-quoted=false -- 불필요한 따옴표 제거
-            -- indentless_arrays=false -- 시퀀스(리스트) 들여쓰기
+            -- NOTE: yamlfmt keeps document markers, blank lines, comments, and
+            -- sequence indentation stable for Kubernetes and Helm manifests.
             ["yamlfmt"] = {
 
                 prepend_args = {
@@ -99,14 +92,16 @@ return {
                     "all",
                 },
             },
-            -- Java: clang-format 우회 (별칭으로 분리해 c_cpp 와 옵션 격리)
-            -- ReflowComments: Never 는 {@link Type#method(...)} 같은 JavaDoc 인라인 태그가
-            -- ColumnLimit 을 넘어도 줄바꿈/축약하지 않도록 보호하는 핵심 옵션.
-            -- NOTE: clang-format-java 는 conform 빌트인이 아니므로 prepend_args 가 병합되지
-            -- 않는다. --style 옵션을 args 배열 안에 직접 포함해야 한다.
-            -- inherit=false: 동명의 builtin 이 없으므로 매 호출마다 발생하는 pcall lookup 제거.
-            -- range_args: visual-mode 부분 포맷이 전체 버퍼 reformat → diff trim 으로 fallback
-            -- 되지 않도록 --offset/--length 직접 전달.
+            -- NOTE: clang-format-java is an alias that keeps Java style isolated
+            -- from C/C++ clang-format defaults.
+            --
+            -- WARN: ReflowComments must stay disabled so inline JavaDoc tags like
+            -- {@link Type#method(...)} are not wrapped or shortened.
+            -- NOTE: clang-format-java 는 conform 빌트인이 아니므로
+            -- prepend_args 가 병합되지 않아 --style 은 args 에 직접 둔다.
+            -- PERF: inherit=false avoids a repeated builtin formatter lookup.
+            -- NOTE: range_args passes offset/length directly so visual-mode
+            -- formatting does not fall back to whole-buffer diff trimming.
             ["clang-format-java"] = {
                 inherit = false,
                 command = "clang-format",
@@ -146,18 +141,16 @@ return {
                 quiet = false,
                 lsp_format = "never",
             },
-            -- sync 포맷터: 저장 전 실행 → 디스크 write 1회, 외부 file watcher 안전
-            -- (format_after_save 는 async 지만 디스크에 두 번 쓰여 webpack/esbuild 등
-            --  외부 watcher 가 더블 트리거됨)
+            -- NOTE: sync format_on_save writes once before save. format_after_save
+            -- writes twice and can double-trigger webpack/esbuild watchers.
             format_on_save = {
-                -- 2500ms: ruff_fix + ruff_organize_imports + ruff_format 체인 마진 확보
+                -- PERF: ruff_fix + ruff_organize_imports + ruff_format 마진.
                 timeout_ms = 2500,
                 lsp_format = "never",
             },
-            -- 파일 타입별 포맷터 매핑을 languages.lua에서 자동으로 가져옴
-            formatters_by_ft = lang.collect_formatters(),
+            formatters_by_ft = opts.formatters_by_ft or {},
 
-            formatters = default_formatters,
+            formatters = vim.tbl_deep_extend("force", default_formatters, opts.formatters or {}),
         }
     end,
 }
