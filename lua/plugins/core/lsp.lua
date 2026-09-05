@@ -27,10 +27,120 @@ end
 
 function M.setup_handlers()
     vim.lsp.handlers["workspace/diagnostic/refresh"] = function()
-        -- Neovim 0.11 does not implement pull-diagnostic refresh. Acknowledge
-        -- the server request so rust-analyzer does not emit a noisy warning.
+        -- COMPAT: Neovim 0.11 does not implement pull-diagnostic refresh.
+        -- Acknowledge the request so rust-analyzer does not warn noisily.
         return vim.NIL
     end
+end
+
+local function has_lsp_client(bufnr, client_name)
+    return #vim.lsp.get_clients({
+        bufnr = bufnr or 0,
+        name = client_name,
+    }) > 0
+end
+
+local function code_action_clients(bufnr)
+    return vim.lsp.get_clients({
+        bufnr = bufnr or 0,
+        method = "textDocument/codeAction",
+    })
+end
+
+local rust_expression_nodes = {
+    await_expression = true,
+    binary_expression = true,
+    call_expression = true,
+    field_expression = true,
+    index_expression = true,
+    method_call_expression = true,
+    try_expression = true,
+}
+
+local function treesitter_range_to_vim_range(bufnr, start_row, start_col, end_row, end_col)
+    local end_vim_row = end_row + 1
+    local end_vim_col = end_col
+
+    if end_col > 0 then
+        end_vim_col = end_col - 1
+    elseif end_row > start_row then
+        end_vim_row = end_row
+        local previous_line = vim.api.nvim_buf_get_lines(bufnr, end_row - 1, end_row, false)[1] or ""
+        end_vim_col = math.max(#previous_line - 1, 0)
+    end
+
+    return {
+        start = { start_row + 1, start_col },
+        ["end"] = { end_vim_row, end_vim_col },
+    }
+end
+
+local function rust_expression_range(bufnr)
+    -- NOTE: Rust refactor action 은 커서 주변 expression 범위가 더 정확함.
+    if vim.bo[bufnr].filetype ~= "rust" or vim.fn.mode() ~= "n" or not has_lsp_client(bufnr, "rust-analyzer") then
+        return nil
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local ok, node = pcall(vim.treesitter.get_node, {
+        bufnr = bufnr,
+        pos = { cursor[1] - 1, cursor[2] },
+    })
+    if not ok then
+        return nil
+    end
+
+    local expression
+
+    while node do
+        if rust_expression_nodes[node:type()] then
+            expression = node
+        end
+        node = node:parent()
+    end
+
+    if not expression then
+        return nil
+    end
+
+    local start_row, start_col, end_row, end_col = expression:range()
+    return treesitter_range_to_vim_range(bufnr, start_row, start_col, end_row, end_col)
+end
+
+local function java_code_action(bufnr)
+    -- NOTE: jdtls 는 resolve 동작이 달라 built-in action 경로가 안정적.
+    if not has_lsp_client(bufnr, "jdtls") then
+        return false
+    end
+
+    vim.lsp.buf.code_action()
+    return true
+end
+
+local function tiny_code_action(bufnr, opts)
+    if #code_action_clients(bufnr) == 0 then
+        vim.notify("No LSP code action provider attached to this buffer.", vim.log.levels.INFO)
+        return
+    end
+
+    local ok, tiny = pcall(require, "tiny-code-action")
+    if ok then
+        tiny.code_action(opts)
+    else
+        vim.lsp.buf.code_action(opts)
+    end
+end
+
+function M.smart_code_action(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+
+    if java_code_action(bufnr) then
+        return
+    end
+
+    tiny_code_action(bufnr, {
+        range = rust_expression_range(bufnr),
+    })
 end
 
 local function get_lsp_client(client_id)
@@ -47,8 +157,8 @@ local function apply_workspace_edit_if_present(edit, offset_encoding)
 end
 
 local function request_full_buffer_code_actions(client, bufnr, kind)
-    -- NOTE: organizeImports/fixAll 은 cursor 위치가 아니라 buffer 전체 문맥이 필요하다.
-    -- 현재 줄 range 로 요청하면 일부 서버가 action 을 돌려주지 않는다.
+    -- NOTE: organizeImports/fixAll 은 buffer 전체 문맥이 필요하다.
+    -- 현재 줄 range 는 일부 서버가 action 을 돌려주지 않는다.
     local line_count = vim.api.nvim_buf_line_count(bufnr)
     local last_line = math.max(line_count - 1, 0)
     local last_line_text = vim.api.nvim_buf_get_lines(bufnr, last_line, last_line + 1, false)[1] or ""
@@ -98,7 +208,7 @@ local function run_lsp_save_actions(bufnr, client_id)
         return
     end
 
-    -- jdtls snapshot can crash on generic codeAction/source.fixAll.
+    -- COMPAT: jdtls snapshot can crash on generic codeAction/source.fixAll.
     -- Use the dedicated java/organizeImports request instead.
     if client.name == "jdtls" then
         run_jdtls_organize_imports(client, bufnr)
@@ -106,7 +216,7 @@ local function run_lsp_save_actions(bufnr, client_id)
     end
 
     -- NOTE: Rust save workflow 는 rustaceanvim/rustfmt 가 소유한다.
-    -- generic source.fixAll 을 섞으면 clippy/rust-analyzer action 과 중복될 수 있다.
+    -- generic source.fixAll 은 clippy/rust-analyzer action 과 중복될 수 있다.
     if client.name == "rust-analyzer" then
         return
     end
@@ -125,14 +235,26 @@ M[1] = {
 }
 
 M[2] = {
+    "rachartier/tiny-code-action.nvim",
+    dependencies = {
+        { "nvim-lua/plenary.nvim" },
+    },
+    lazy = true,
+    opts = {
+        backend = "vim",
+        picker = "snacks",
+    },
+}
+
+M[3] = {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
     dependencies = { "saghen/blink.cmp" },
-    config = function()
+    config = function(_, opts)
         M.setup_diagnostics()
         M.setup_handlers()
 
-        -- LSP 연결 시 키맵 설정 (LspAttach는 Java 포함 모든 클라이언트에 동작)
+        -- NOTE: LspAttach 는 Java 포함 모든 LSP 클라이언트에 동작한다.
         vim.api.nvim_create_autocmd("LspAttach", {
             callback = function(attach_args)
                 local keymaps = require("config.keymaps")
@@ -140,12 +262,9 @@ M[2] = {
 
                 local attached_client_id = attach_args.data and attach_args.data.client_id or nil
 
-                -- NOTE: LSP attach 시점에 save action 을 client 별로 등록한다.
-                -- 버퍼+클라이언트별 augroup + clear=true:
-                -- (1) 동일 버퍼+클라이언트가 재부착될 때 (jdtls 재시작 등)
-                --     BufWritePre 가 스택되는 것을 방지.
-                -- (2) 동일 버퍼에 여러 LSP 가 동시 부착될 때
-                --     서로의 handler 를 wipe 하지 않도록 client_id 까지 namespace 분리.
+                -- NOTE: save actions are scoped by buffer and client id.
+                -- This prevents duplicate handlers on client restart while
+                -- preserving independent handlers for multiple attached LSPs.
                 vim.api.nvim_create_autocmd("BufWritePre", {
                     buffer = attach_args.buf,
                     group = vim.api.nvim_create_augroup(
@@ -163,16 +282,15 @@ M[2] = {
         vim.api.nvim_create_autocmd("VimLeavePre", {
             group = vim.api.nvim_create_augroup("CleanupNixd", { clear = true }),
             callback = function()
-                -- nixd 와 자식 프로세스 graceful 종료 (SIGTERM).
-                -- SIGKILL(-9) 은 nixd 의 nix daemon evaluation cache 가
-                -- 플러시되지 못해 증분 평가 캐시가 손상될 수 있음.
+                -- WARN: stop nixd with SIGTERM so evaluation caches can flush.
+                -- SIGKILL can leave stale incremental evaluation state behind.
                 os.execute("pkill -15 nixd")
                 os.execute("pkill -15 nixd-attrset-eval")
             end,
         })
 
         -- 각 서버 설정 및 활성화 (Neovim 0.11+ 신규 API 활용)
-        local servers = require("config.languages").collect_lsp_servers()
+        local servers = opts.servers or {}
         local base_capabilities = M.get_capabilities()
 
         for server, config in pairs(servers) do
@@ -184,22 +302,27 @@ M[2] = {
                 },
             }, config)
 
-            -- 실행 가능 여부 확인
-            local cmd = (type(final_config.cmd) == "table" and final_config.cmd[1]) or final_config.cmd or server
-            if vim.fn.executable(cmd) == 1 then
-                vim.lsp.config(server, final_config)
-                vim.lsp.enable(server)
-            else
-                vim.notify(
-                    string.format(
-                        "LSP '%s' not found in PATH. Install it via your package manager (nix, brew, apt, etc.).",
-                        cmd
-                    ),
-                    vim.log.levels.ERROR
-                )
+            if config.enabled ~= false then
+                -- 실행 가능 여부 확인
+                local cmd = (type(final_config.cmd) == "table" and final_config.cmd[1]) or final_config.cmd or server
+                if vim.fn.executable(cmd) == 1 then
+                    vim.lsp.config(server, final_config)
+                    vim.lsp.enable(server)
+                else
+                    vim.notify(
+                        string.format(
+                            "LSP '%s' not found in PATH. Install it via your package manager (nix, brew, apt, etc.).",
+                            cmd
+                        ),
+                        vim.log.levels.ERROR
+                    )
+                end
             end
         end
     end,
+    opts = {
+        servers = {},
+    },
 }
 
 return M
