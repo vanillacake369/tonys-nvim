@@ -1,9 +1,9 @@
--- Neotest: per-test runner with gutter signs, inline diagnostics, summary panel.
--- Adapters: neotest-java (Gradle/Maven), neotest-golang, neotest-python (pytest),
--- and rustaceanvim.neotest (loaded automatically when rust files are open).
+-- NOTE: Neotest owns per-test gutter signs, diagnostics, summary, and DAP runs.
+-- Java, Go, Python, and Rust adapters are registered together so test keymaps
+-- do not depend on which language buffer loaded first.
 --
--- JUnit Platform Console Standalone JAR (required by neotest-java) is provisioned
--- by tonys-nix via home.file symlink — no per-machine setup needed on Nix hosts.
+-- COMPAT: neotest-java uses the JUnit Platform Console Standalone JAR provided
+-- by tonys-nix via home.file symlink on Nix hosts.
 
 return {
     {
@@ -13,19 +13,13 @@ return {
             "nvim-lua/plenary.nvim",
             "antoinemadec/FixCursorHold.nvim",
             "nvim-treesitter/nvim-treesitter",
-            -- COUPLED with the Path:append monkey-patch below + the JUnit JAR
-            -- pin in tonys-nix/modules/language/language.hm.nix. When updating
-            -- neotest-java, recheck BOTH: (1) does the patch still apply
-            -- (see detection signal in the patch comment), (2) does the
-            -- JUnit JAR pinned version still match neotest-java's
-            -- default_config.SUPPORTED_VERSIONS[1].
+            -- COMPAT: neotest-java upgrades must be checked with the Path:append
+            -- patch below and the JUnit JAR pin in tonys-nix.
             "rcasia/neotest-java",
             "fredrikaverpil/neotest-golang",
             "nvim-neotest/neotest-python",
-            -- rustaceanvim must load before neotest's config so its adapter is
-            -- available to register. Without this, opening a .java file first
-            -- means neotest.setup runs without the rust adapter and rust tests
-            -- are never discoverable until full restart.
+            -- NOTE: rustaceanvim must load before neotest setup so the Rust
+            -- adapter is available even when a non-Rust buffer opens first.
             "mrcjkb/rustaceanvim",
         },
         ft = { "java", "go", "python", "rust" },
@@ -33,24 +27,18 @@ return {
             return require("config.keymaps").bind("test")
         end,
         config = function()
-            -- Upstream bug in neotest-java v0.37.3 (also present on main as of
-            -- 2026-05-31): `Path:append` does `self.raw_path .. self.separator
-            -- .. other` assuming `other` is a string, but `build_tool.lua:32`
-            -- calls it with another Path (Gradle's `get_build_dirname` returns
-            -- `Path("bin")`). Crashes when running tests in Spring projects via
-            -- `get_spring_property_filepaths`. Coerce table args via tostring
-            -- (Path has a __tostring metamethod).
+            -- HACK: neotest-java v0.37.3 Path:append assumes `other` is a
+            -- string, but Gradle build dir resolution can pass another Path.
+            -- Coerce table args through tostring to keep Spring test discovery
+            -- from crashing.
             --
-            -- [VERSION DRIFT] Pinned to behavior of neotest-java HEAD@2026-05-31.
-            -- Detection signal: after `:Lazy update neotest-java`, run
+            -- COMPAT: pinned to neotest-java HEAD behavior on 2026-05-31. After
+            -- `:Lazy update neotest-java`, run:
             --   git -C ~/.local/share/nvim/lazy/neotest-java log --oneline \
             --       -- lua/neotest-java/model/path.lua \
             --       lua/neotest-java/build_tool/build_tool.lua
-            -- If upstream changed either file, temporarily disable this patch
-            -- (comment out the `do ... end` block) and run a Spring-project
-            -- test; if it still passes, the patch can be deleted. Upstream
-            -- issue to file: github.com/rcasia/neotest-java (Path:append
-            -- table arg from build_tool:32, no __concat metamethod).
+            -- If either file changed, disable this patch and run a Spring test.
+            -- Delete the patch when upstream handles Path table concatenation.
             do
                 local ok, Path = pcall(require, "neotest-java.model.path")
                 if ok and Path and Path.append then
@@ -71,11 +59,8 @@ return {
                     table.insert(adapters, factory and factory(mod) or mod)
                 end
             end
-            -- `disable_update_notifications = true` suppresses the in-editor
-            -- "JUnit jar update available" popup that neotest-java would show
-            -- every session once a 6.1.x lands in its SUPPORTED_VERSIONS list
-            -- (the Nix-pinned 6.0.3 would suddenly look "outdated"). We track
-            -- version bumps via the comment in language.hm.nix instead.
+            -- COMPAT: suppress neotest-java JUnit update popups because the JAR
+            -- version is pinned by Nix and reviewed in tonys-nix instead.
             add("neotest-java", function(mod)
                 return mod({ disable_update_notifications = true })
             end)
@@ -92,8 +77,23 @@ return {
                 adapters = adapters,
                 quickfix = { open = false },
                 output = { open_on_run = false },
-                output_panel = { open = "botright 15split" },
-                summary = { open = "botright 50vsplit" },
+                output_panel = { open = "botright 18split" },
+                summary = {
+                    open = "botright 50vsplit",
+                    follow = true,
+                    expand_errors = true,
+                    count = true,
+                },
+                consumers = {
+                    open_output_panel = function(client)
+                        client.listeners.run = function()
+                            vim.schedule(function()
+                                require("neotest").output_panel.open()
+                            end)
+                        end
+                        return {}
+                    end,
+                },
                 icons = {
                     passed = "✓",
                     failed = "✗",
