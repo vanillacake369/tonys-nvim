@@ -134,8 +134,9 @@ end
 
 local function setup_java_dap()
     local jdtls = require("jdtls")
+    local jdtls_dap = require("jdtls.dap")
     jdtls.setup_dap({ hotcodereplace = "auto" })
-    jdtls.setup_dap_main_class_configs()
+    jdtls_dap.setup_dap_main_class_configs()
 end
 
 local function setup_jdtls()
