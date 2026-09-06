@@ -679,11 +679,7 @@ M.definitions = {
         {
             "<leader>ta",
             function()
-                (_G.__alternate or {
-                    jump = function()
-                        vim.cmd("Other")
-                    end,
-                }).jump()
+                _G.__test_alternate.jump_alternate()
             end,
             desc = "Test Alternate (Jump or Create)",
         },
@@ -696,9 +692,9 @@ M.definitions = {
         { "<leader>a", "<Plug>(EasyAlign)", desc = "Align Text", mode = { "n", "x" } },
     },
 
-    -- Harpoon (file bookmarks)
-    harpoon = {
-        name = "+Harpoon",
+    -- Marks (file bookmarks)
+    marks = {
+        name = "+Marks",
         prefix = "<leader>h",
         {
             "<leader>ha",
@@ -782,6 +778,26 @@ M.definitions = {
             end,
             desc = "Toggle Terminal",
             mode = { "n", "t" },
+        },
+    },
+
+    -- Jump
+    jump = {
+        {
+            "s",
+            function()
+                require("flash").jump()
+            end,
+            desc = "Jump",
+            mode = { "n", "x", "o" },
+        },
+        {
+            "S",
+            function()
+                require("flash").treesitter()
+            end,
+            desc = "Jump Treesitter",
+            mode = { "n", "x", "o" },
         },
     },
 
