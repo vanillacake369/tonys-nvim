@@ -5,6 +5,208 @@
 -- COMPAT: neotest-java uses the JUnit Platform Console Standalone JAR provided
 -- by tonys-nix via home.file symlink on Nix hosts.
 
+local M = {}
+
+-- Test alternate: source/test file creation templates.
+
+local alternate_templates = {}
+
+local function derive_java_package(filename)
+    local rel = filename:match("/src/[^/]+/java/(.*)/[^/]+%.java$")
+        or filename:match("/src/[^/]+/kotlin/(.*)/[^/]+%.kt$")
+    return rel and rel:gsub("/", ".") or ""
+end
+
+local function derive_class_name(filename)
+    return vim.fn.fnamemodify(filename, ":t:r")
+end
+
+local function go_package(filename)
+    -- Reuse existing package decl from sibling .go files if present.
+    local dir = vim.fn.fnamemodify(filename, ":h")
+    for _, sibling in ipairs(vim.fn.glob(dir .. "/*.go", false, true)) do
+        if sibling ~= filename then
+            for _, line in ipairs(vim.fn.readfile(sibling, "", 20)) do
+                local pkg = line:match("^package%s+([%w_]+)")
+                if pkg then
+                    return pkg
+                end
+            end
+        end
+    end
+    return vim.fn.fnamemodify(dir, ":t")
+end
+
+local templates = {
+    java = function(filename)
+        local pkg = derive_java_package(filename)
+        local class = derive_class_name(filename)
+        return {
+            "package " .. pkg .. ";",
+            "",
+            "import org.junit.jupiter.api.Test;",
+            "import org.junit.jupiter.api.DisplayName;",
+            "",
+            "class " .. class .. " {",
+            "",
+            "    @Test",
+            '    @DisplayName("테스트코드명")',
+            "    void 테스트코드명() {",
+            "        // GIVEN",
+            "        // WHEN",
+            "        // THEN",
+            "    }",
+            "}",
+            "",
+        }
+    end,
+    kt = function(filename)
+        local pkg = derive_java_package(filename)
+        local class = derive_class_name(filename)
+        return {
+            "package " .. pkg,
+            "",
+            "import org.junit.jupiter.api.Test",
+            "import org.junit.jupiter.api.DisplayName",
+            "",
+            "class " .. class .. " {",
+            "",
+            "    @Test",
+            '    @DisplayName("테스트코드명")',
+            "    fun `테스트코드명`() {",
+            "        // GIVEN",
+            "        // WHEN",
+            "        // THEN",
+            "    }",
+            "}",
+            "",
+        }
+    end,
+    go = function(filename)
+        return {
+            "package " .. go_package(filename),
+            "",
+            'import "testing"',
+            "",
+            "func Test테스트코드명(t *testing.T) {",
+            '    t.Run("테스트코드명", func(t *testing.T) {',
+            "        // GIVEN",
+            "        // WHEN",
+            "        // THEN",
+            '        t.Fatal("Should be implemented")',
+            "    })",
+            "}",
+            "",
+        }
+    end,
+    py = function(_)
+        return {
+            "def test_테스트코드명() -> None:",
+            '    """테스트코드명"""',
+            "    # GIVEN",
+            "    # WHEN",
+            "    # THEN",
+            '    raise NotImplementedError("Should be implemented")',
+            "",
+        }
+    end,
+}
+
+function alternate_templates.write(filename)
+    local ext = filename:match("%.([^.]+)$")
+    local maker = templates[ext]
+    if not maker then
+        return
+    end
+    -- Ensure parent dir exists (other.nvim doesn't mkdir -p for new files).
+    vim.fn.mkdir(vim.fn.fnamemodify(filename, ":h"), "p")
+    -- Defer until the buffer is loaded (onOpenFile fires *before* :edit).
+    vim.schedule(function()
+        local bufnr = vim.fn.bufnr(filename)
+        if bufnr == -1 then
+            return
+        end
+        if vim.api.nvim_buf_line_count(bufnr) > 1 then
+            return -- already has content
+        end
+        local first = vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1]
+        if first and first ~= "" then
+            return
+        end
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, maker(filename))
+    end)
+end
+
+-- Test alternate: Rust inline `#[cfg(test)] mod tests` support.
+
+local alternate_rust = {}
+
+function alternate_rust.jump_to_test_block()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local ok, parser = pcall(vim.treesitter.get_parser, bufnr, "rust")
+    if not ok or not parser then
+        vim.notify("rust treesitter parser not available", vim.log.levels.WARN)
+        return
+    end
+    local tree = parser:parse()[1]
+    if not tree then
+        return
+    end
+    local query = vim.treesitter.query.parse(
+        "rust",
+        [[
+        (mod_item
+          name: (identifier) @name
+          (#match? @name "^tests?$")
+        ) @mod
+        ]]
+    )
+    for id, node in query:iter_captures(tree:root(), bufnr) do
+        if query.captures[id] == "mod" then
+            local row, col = node:range()
+            vim.api.nvim_win_set_cursor(0, { row + 1, col })
+            return
+        end
+    end
+    -- No mod tests block; append a skeleton at end and jump cursor inside.
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
+    local skeleton = {
+        "",
+        "#[cfg(test)]",
+        "mod tests {",
+        "    use super::*;",
+        "",
+        "    #[test]",
+        "    fn 테스트코드명() {",
+        "        // GIVEN",
+        "        // WHEN",
+        "        // THEN",
+        '        unimplemented!("Should be implemented");',
+        "    }",
+        "}",
+    }
+    vim.api.nvim_buf_set_lines(bufnr, line_count, line_count, false, skeleton)
+    vim.api.nvim_win_set_cursor(0, { line_count + 3, 0 })
+end
+
+-- Test alternate: public entry points.
+
+function M.jump_alternate()
+    if vim.bo.filetype == "rust" then
+        alternate_rust.jump_to_test_block()
+        return
+    end
+    vim.cmd("Other")
+end
+
+function M.write_alternate_template(filename)
+    alternate_templates.write(filename)
+end
+
+-- Neotest plugin spec.
+
+_G.__test_alternate = M
+
 return {
     {
         "nvim-neotest/neotest",
