@@ -4,7 +4,7 @@ return {
         branch = "harpoon2",
         dependencies = { "nvim-lua/plenary.nvim" },
         keys = function()
-            return require("config.keymaps").bind("harpoon")
+            return require("config.keymaps").bind("marks")
         end,
         opts = {
             settings = {
