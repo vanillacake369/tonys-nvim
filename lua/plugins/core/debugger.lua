@@ -161,6 +161,12 @@ function M.debug_run()
 end
 
 function M.debug_test()
+    if vim.bo.filetype == "java" or vim.bo.filetype == "kotlin" then
+        require("plugins.core.test")
+        _G.__test_alternate.debug_test()
+        return
+    end
+
     local ok, err = pcall(function()
         require("neotest").run.run({ strategy = "dap" })
     end)
