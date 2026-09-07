@@ -7,6 +7,133 @@
 
 local M = {}
 
+-- Java Gradle test runner.
+
+local function get_gradle_root_from(filename)
+    return vim.fs.root(
+        filename,
+        { "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "gradlew" }
+    )
+end
+
+local function gradle_cmd(root, ...)
+    local cmd = (vim.fn.filereadable(root .. "/gradlew") == 1) and { "./gradlew" } or { "gradle" }
+    vim.list_extend(cmd, { ... })
+    return cmd
+end
+
+local function get_java_package(file)
+    for _, line in ipairs(vim.fn.readfile(file)) do
+        local pkg = line:match("^%s*package%s+([%w_%.]+)%s*;")
+        if pkg then
+            return pkg
+        end
+    end
+    return nil
+end
+
+local function get_java_class(file)
+    local pkg = get_java_package(file)
+    local class = vim.fn.fnamemodify(file, ":t:r")
+    return pkg and (pkg .. "." .. class) or class
+end
+
+local java_non_methods = {
+    ["if"] = true,
+    ["for"] = true,
+    ["while"] = true,
+    ["switch"] = true,
+    ["catch"] = true,
+    ["try"] = true,
+    synchronized = true,
+}
+
+local function get_java_method_at_cursor()
+    local cursor = vim.api.nvim_win_get_cursor(0)[1]
+    for row = cursor, 1, -1 do
+        local line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1] or ""
+        local signature = line:match("^(.-)%s*{%s*$")
+        signature = signature and signature:gsub("%s+throws%s+.*$", "")
+        local before_params = signature and signature:match("^(.-)%s*%(")
+        local name = before_params and before_params:match("([^%s]+)$")
+        if before_params and name and not java_non_methods[name] and not name:find(".", 1, true) then
+            return name
+        end
+    end
+    return nil
+end
+
+local function run_terminal(cmd, cwd)
+    if _G.Snacks and Snacks.terminal then
+        Snacks.terminal.open(cmd, {
+            cwd = cwd,
+            interactive = false,
+            win = {
+                position = "bottom",
+                height = 0.45,
+            },
+        })
+        return
+    end
+
+    vim.cmd("botright split")
+    vim.fn.termopen(cmd, { cwd = cwd })
+end
+
+local function java_gradle_filter(file, nearest)
+    local fqcn = get_java_class(file)
+    local method = nearest and get_java_method_at_cursor() or nil
+    return method and (fqcn .. "." .. method) or fqcn
+end
+
+local function run_java_gradle_test(opts)
+    opts = opts or {}
+    local file = vim.api.nvim_buf_get_name(0)
+    local root = get_gradle_root_from(vim.fn.fnamemodify(file, ":h"))
+    if not root then
+        require("neotest").run.run()
+        return
+    end
+
+    if vim.bo.modified then
+        vim.cmd("write")
+    end
+
+    local cmd = gradle_cmd(root, "cleanTest", "test")
+    vim.list_extend(cmd, { "--tests", java_gradle_filter(file, opts.nearest), "--info", "--console=plain" })
+    if opts.watch then
+        table.insert(cmd, "--continuous")
+    end
+    run_terminal(cmd, root)
+end
+
+function M.run_nearest()
+    if vim.bo.filetype ~= "java" then
+        require("neotest").run.run()
+        return
+    end
+
+    run_java_gradle_test({ nearest = true })
+end
+
+function M.run_file()
+    if vim.bo.filetype ~= "java" then
+        require("neotest").run.run(vim.fn.expand("%"))
+        return
+    end
+
+    run_java_gradle_test()
+end
+
+function M.watch_file()
+    if vim.bo.filetype ~= "java" then
+        require("neotest").watch.toggle(vim.fn.expand("%"))
+        return
+    end
+
+    run_java_gradle_test({ watch = true })
+end
+
 -- Test alternate: source/test file creation templates.
 
 local alternate_templates = {}
