@@ -1,4 +1,4 @@
--- 준비
+-- GIVEN
 local specs = {
     "tests/paste_img_fallback_spec.lua",
     "tests/jvm_gradle_command_spec.lua",
@@ -9,7 +9,7 @@ local specs = {
 
 local failures = {}
 
--- 실행
+-- WHEN
 for _, spec in ipairs(specs) do
     local ok, err = pcall(dofile, spec)
     if not ok then
@@ -17,7 +17,7 @@ for _, spec in ipairs(specs) do
     end
 end
 
--- 검증
+-- THEN
 if #failures > 0 then
     vim.api.nvim_err_writeln(table.concat(failures, "\n\n"))
     vim.cmd("cquit 1")

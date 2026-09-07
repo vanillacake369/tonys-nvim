@@ -6,6 +6,7 @@ end
 
 local paste_img = require("plugins.core.paste-img")
 
+-- GIVEN
 local tmp = vim.fs.normalize(vim.fn.tempname())
 local post_dir = tmp .. "/src/content/posts/public/Series"
 local image_dir = tmp .. "/public/images/posts/Series/2026-08-27-post"
@@ -19,13 +20,16 @@ vim.fn.writefile({ "export default {};" }, tmp .. "/astro.config.mjs")
 vim.fn.writefile({ "# Post" }, post)
 vim.fn.writefile({ "image" }, image)
 
+-- WHEN
 local ctx = paste_img.get_context_for_path(post)
+local markdown_link = paste_img.markdown_link_for(ctx, image)
 
+-- THEN
 assert_eq(ctx.kind, "tonys-blog-fallback", "missing md-rule.toml uses tonys-blog fallback")
 assert_eq(ctx.identity, "Series/2026-08-27-post", "fallback identity keeps post subdirectories")
 assert_eq(ctx.asset_dir, image_dir, "fallback asset dir follows public image policy")
 assert_eq(
-    paste_img.markdown_link_for(ctx, image),
+    markdown_link,
     "/images/posts/Series/2026-08-27-post/diagram.png",
     "fallback markdown link follows public image URL policy"
 )

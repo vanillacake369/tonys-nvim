@@ -5,11 +5,11 @@ local runner = H.gradle_runner()
 -- NOTE: command test 는 argv contract 를 고정한다. 실제 Gradle build 를 실행하지
 -- 않고 option 순서, wrapper fallback, shell join, debug, watch 회귀를 잡는다.
 
--- 준비
+-- GIVEN
 local root = H.temp_root()
 H.gradlew(root)
 
--- 실행
+-- WHEN
 local commands = runner.build_gradle_test_commands({
     root = root,
     init_script = "/tmp/init.gradle",
@@ -20,7 +20,7 @@ local commands = runner.build_gradle_test_commands({
     },
 })
 
--- 검증
+-- THEN
 assert_eq(commands, {
     {
         "./gradlew",
@@ -46,11 +46,11 @@ assert_eq(commands, {
     },
 }, "selected multi-module tests are grouped by Gradle task")
 
--- 실행
+-- WHEN
 local combined = runner.combined_command(commands)
 local shell = table.concat(combined, " ")
 
--- 검증
+-- THEN
 assert_eq(combined[1], "sh", "multi-command runs through shell")
 assert_eq(combined[2], "-lc", "multi-command uses login-independent shell command")
 assert_eq(
@@ -61,11 +61,11 @@ assert_eq(
 
 vim.fn.delete(root, "rf")
 
--- 준비
+-- GIVEN
 root = H.temp_root()
 H.gradlew(root)
 
--- 실행
+-- WHEN
 local debug_commands = runner.build_gradle_debug_commands({
     root = root,
     init_script = "/tmp/init.gradle",
@@ -74,7 +74,7 @@ local debug_commands = runner.build_gradle_debug_commands({
     },
 })
 
--- 검증
+-- THEN
 assert_eq(debug_commands, {
     {
         "./gradlew",
@@ -91,11 +91,11 @@ assert_eq(debug_commands, {
 
 vim.fn.delete(root, "rf")
 
--- 준비
+-- GIVEN
 root = H.temp_root()
 H.gradlew(root)
 
--- 실행
+-- WHEN
 local watch_commands = runner.build_gradle_test_commands({
     root = root,
     init_script = "/tmp/init.gradle",
@@ -107,18 +107,18 @@ local watch_commands = runner.build_gradle_test_commands({
 })
 combined = runner.combined_command(watch_commands)
 
--- 검증
+-- THEN
 assert_eq(watch_commands[1][#watch_commands[1] - 1], "--continuous", "watch flag stays inside each Gradle argv")
 assert_eq(watch_commands[2][#watch_commands[2] - 1], "--continuous", "multi-module watch applies to every Gradle argv")
 assert_eq(#combined, 3, "multi-module watch does not append Gradle flags to sh argv")
 
 vim.fn.delete(root, "rf")
 
--- 준비
+-- GIVEN
 root = H.temp_root()
 H.gradlew(root)
 
--- 실행
+-- WHEN
 commands = runner.build_gradle_test_commands({
     root = root,
     init_script = "/tmp/init.gradle",
@@ -127,16 +127,16 @@ commands = runner.build_gradle_test_commands({
     },
 })
 
--- 검증
+-- THEN
 assert_eq(commands[1][1], "./gradlew", "Gradle wrapper is preferred when present")
 
 vim.fn.delete(root, "rf")
 
--- 준비
+-- GIVEN
 root = H.temp_root()
 H.gradlew(root)
 
--- 실행
+-- WHEN
 local escaped = runner.combined_command({
     {
         "./gradlew",
@@ -154,7 +154,7 @@ local escaped = runner.combined_command({
     },
 })
 
--- 검증
+-- THEN
 assert_eq(escaped[3]:match("does work") ~= nil, true, "shell command preserves spaced filters")
 assert_eq(escaped[3]:find("\\'", 1, true) ~= nil, true, "shell command escapes quoted filters")
 

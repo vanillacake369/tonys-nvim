@@ -5,7 +5,7 @@ local runner = H.gradle_runner()
 -- NOTE: discovery test 는 neotest-java 를 쓰지 않는 Kotlin 경로를 검증한다.
 -- 여기서 DSL 을 만들면 실패 원인을 읽기 어려워지므로 case 는 구체적으로 둔다.
 
--- 준비
+-- GIVEN
 local root = H.temp_root()
 local kotlin_file = root .. "/feature/src/test/kotlin/com/acme/FooTest.kt"
 H.write(kotlin_file, {
@@ -35,10 +35,10 @@ local metadata = {
     },
 }
 
--- 실행
+-- WHEN
 local items = runner.discover_kotlin_tests({ kotlin_file }, metadata)
 
--- 검증
+-- THEN
 assert_eq({
     items[1].filter,
     items[2].filter,
