@@ -623,14 +623,14 @@ M.definitions = {
         {
             "<leader>tt",
             function()
-                require("neotest").run.run()
+                _G.__test_alternate.run_nearest()
             end,
             desc = "Run Nearest Test",
         },
         {
             "<leader>tf",
             function()
-                require("neotest").run.run(vim.fn.expand("%"))
+                _G.__test_alternate.run_file()
             end,
             desc = "Run File",
         },
@@ -665,7 +665,7 @@ M.definitions = {
         {
             "<leader>tw",
             function()
-                require("neotest").watch.toggle(vim.fn.expand("%"))
+                _G.__test_alternate.watch_file()
             end,
             desc = "Toggle Watch (File)",
         },
