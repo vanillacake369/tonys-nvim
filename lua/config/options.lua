@@ -3,6 +3,9 @@ vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.showmode = false
 
+-- Max width
+vim.opt.textwidth = 80
+
 -- Tabs and indentation
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
