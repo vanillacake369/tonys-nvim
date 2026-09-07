@@ -20,6 +20,17 @@ local function clear_if_invalid()
     end
 end
 
+local function refresh_statusline()
+    pcall(function()
+        require("lualine").refresh()
+    end)
+end
+
+function M.is_fullscreen()
+    clear_if_invalid()
+    return fullscreen_tab == vim.api.nvim_get_current_tabpage()
+end
+
 local function is_snacks_window(win)
     if not vim.api.nvim_win_is_valid(win) then
         return false
@@ -105,8 +116,8 @@ local function has_editor_window()
 end
 
 local function close_explorer_if_orphaned()
-    -- NOTE: close an orphaned explorer when no editor window remains.
-    -- Otherwise there is no valid navigation target in the tab.
+    -- NOTE: editor window 가 남아 있지 않으면 orphan explorer 를 닫는다.
+    -- 그렇지 않으면 해당 tab 안에 유효한 navigation target 이 없다.
     local picker = get_snacks_picker("explorer")
     if not picker or has_editor_window() then
         return
@@ -118,8 +129,8 @@ local function close_explorer_if_orphaned()
 end
 
 local function reveal_or_open_explorer()
-    -- NOTE: reuse the explorer when it can reveal the current buffer.
-    -- Fall back to a fresh picker when reveal fails.
+    -- NOTE: 현재 buffer reveal 이 가능하면 기존 explorer 를 재사용한다.
+    -- reveal 이 실패하면 새 picker 로 fallback 한다.
     local snacks = get_snacks()
     if not (snacks and snacks.explorer) then
         return nil
@@ -148,16 +159,18 @@ function M.toggle_fullscreen()
         end
 
         fullscreen_tab = nil
+        refresh_statusline()
         return
     end
 
     vim.cmd("tab split")
     fullscreen_tab = vim.api.nvim_get_current_tabpage()
+    refresh_statusline()
 end
 
 function M.toggle_focus()
-    -- NOTE: focus toggles picker -> previous editor -> new explorer.
-    -- Keep Snacks windows separate from editor windows to avoid wincmd drift.
+    -- NOTE: focus 는 picker -> previous editor -> new explorer 순서로 toggle 한다.
+    -- wincmd drift 를 피하려고 Snacks window 는 editor window 와 분리한다.
     if is_snacks_window(vim.api.nvim_get_current_win()) then
         if not focus_editor_window() then
             vim.cmd("wincmd p")
