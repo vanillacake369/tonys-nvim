@@ -628,6 +628,13 @@ M.definitions = {
             desc = "Run Nearest Test",
         },
         {
+            "<leader>tT",
+            function()
+                _G.__test_alternate.run_nearest_verbose()
+            end,
+            desc = "Run Nearest Test (Verbose)",
+        },
+        {
             "<leader>tf",
             function()
                 _G.__test_alternate.run_file()
@@ -642,25 +649,18 @@ M.definitions = {
             desc = "Run Last",
         },
         {
-            "<leader>ts",
-            function()
-                require("neotest").summary.toggle()
-            end,
-            desc = "Toggle Summary",
-        },
-        {
-            "<leader>to",
-            function()
-                require("neotest").output.open({ enter = true, auto_close = true })
-            end,
-            desc = "Open Output",
-        },
-        {
             "<leader>tO",
             function()
                 require("neotest").output_panel.toggle()
             end,
             desc = "Toggle Output Panel",
+        },
+        {
+            "<leader>tp",
+            function()
+                _G.__test_alternate.pick_jvm_tests()
+            end,
+            desc = "Pick Tests",
         },
         {
             "<leader>tw",
@@ -672,7 +672,7 @@ M.definitions = {
         {
             "<leader>tq",
             function()
-                require("neotest").run.stop()
+                _G.__test_alternate.stop()
             end,
             desc = "Stop",
         },
