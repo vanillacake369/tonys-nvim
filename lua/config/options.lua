@@ -19,6 +19,12 @@ vim.opt.mouse = "a"
 -- Wrap
 vim.opt.wrap = false
 
+-- Folds
+vim.opt.foldenable = true
+vim.opt.foldmethod = "manual"
+vim.opt.foldlevelstart = 99
+vim.opt.foldcolumn = "1"
+
 -- NOTE: search is incremental and case-insensitive unless uppercase is typed.
 vim.opt.hlsearch = true
 vim.opt.incsearch = true
