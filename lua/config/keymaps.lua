@@ -783,20 +783,14 @@ M.definitions = {
 
     -- Jump
     jump = {
+        name = "+Jump",
+        prefix = "<leader>j",
         {
-            "s",
+            "<leader>jj",
             function()
                 require("flash").jump()
             end,
-            desc = "Jump",
-            mode = { "n", "x", "o" },
-        },
-        {
-            "S",
-            function()
-                require("flash").treesitter()
-            end,
-            desc = "Jump Treesitter",
+            desc = "Flash Jump",
             mode = { "n", "x", "o" },
         },
     },
