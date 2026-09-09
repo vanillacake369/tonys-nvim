@@ -15,7 +15,10 @@ return {
         end,
         opts = {
             keywords = {
-                COMPAT = { icon = "C ", color = "hint", alt = { "VERSION" } },
+                TIP = { icon = "💡", color = "info", alt = { "HINT", "IDEA", "SUGGEST" } },
+                IMPORTANT = { icon = "❗", color = "hint", alt = { "REQUIRED", "CRITICAL", "CHECK" } },
+                CAUTION = { icon = "⚠️", color = "warning", alt = { "WARNING", "BEWARE", "DANGER" } },
+                VERSION = { icon = "📌", color = "test", alt = { "V_", "TAG", "MIGRATE" } },
             },
         },
     },
