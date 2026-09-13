@@ -1,6 +1,6 @@
 {
   "Pytest (GWT)": {
-    "prefix": "test",
+    "prefix": ["test", "tst"],
     "body": [
       "def test_${1:테스트코드명}() -> None:",
       "    \"\"\"${2:테스트코드명}\"\"\"",
@@ -12,5 +12,73 @@
       "    raise NotImplementedError(\"Should be implemented\")"
     ],
     "description": "pytest function with GIVEN/WHEN/THEN"
+  },
+  "Pytest Fixture": {
+    "prefix": ["fixture", "fix"],
+    "body": [
+      "@pytest.fixture",
+      "def ${1:fixture_name}() -> ${2:None}:",
+      "    $0"
+    ],
+    "description": "pytest fixture"
+  },
+  "Pytest Yield Fixture": {
+    "prefix": ["yieldFixture", "yfix"],
+    "body": [
+      "@pytest.fixture",
+      "def ${1:fixture_name}() -> Generator[${2:None}, None, None]:",
+      "    ${3:# setup}",
+      "    yield ${4:None}",
+      "    ${5:# teardown}"
+    ],
+    "description": "pytest yield fixture with teardown"
+  },
+  "Pytest Autouse Fixture": {
+    "prefix": ["autouseFixture", "afix"],
+    "body": [
+      "@pytest.fixture(autouse=True)",
+      "def ${1:fixture_name}() -> ${2:None}:",
+      "    $0"
+    ],
+    "description": "pytest autouse fixture"
+  },
+  "Pytest Parametrize": {
+    "prefix": ["parametrize", "param"],
+    "body": [
+      "@pytest.mark.parametrize(",
+      "    \"${1:input}, expected\",",
+      "    [",
+      "        (${2:input}, ${3:expected}),",
+      "    ],",
+      ")"
+    ],
+    "description": "pytest parametrize decorator"
+  },
+  "Python Patch Context": {
+    "prefix": ["patch", "mock"],
+    "body": [
+      "with patch(\"${1:module.target}\") as ${2:mock_target}:",
+      "    $0"
+    ],
+    "description": "unittest.mock patch context"
+  },
+  "Pytest tmp_path Test": {
+    "prefix": ["tmpPathTest", "tmptest"],
+    "body": [
+      "def test_${1:테스트코드명}(tmp_path: Path) -> None:",
+      "    ${2:file_path} = tmp_path / \"${3:file.txt}\"",
+      "    $0"
+    ],
+    "description": "pytest test with tmp_path"
+  },
+  "Python Logging Setup": {
+    "prefix": ["loggingSetup", "logsetup"],
+    "body": [
+      "logging.basicConfig(",
+      "    level=logging.${1:INFO},",
+      "    format=\"%(asctime)s %(levelname)s %(name)s - %(message)s\",",
+      ")"
+    ],
+    "description": "basic logging setup"
   }
 }

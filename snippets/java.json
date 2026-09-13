@@ -1,18 +1,107 @@
 {
-  "JUnit5 Test (GWT)": {
-    "prefix": "test",
-    "body": [
-      "@Test",
-      "@DisplayName(\"${1:테스트코드명}\")",
-      "void ${2:테스트코드명}() {",
-      "    // GIVEN",
-      "    $3",
-      "    // WHEN",
-      "    $4",
-      "    // THEN",
-      "    fail(\"Should be implemented\");",
-      "}"
-    ],
-    "description": "JUnit5 @Test + @DisplayName with GIVEN/WHEN/THEN"
-  }
+    "Throw New": {
+        "prefix": ["thrn", "thr"],
+        "body": ["throw new ${1:RuntimeException}(${2:\"message\"});"],
+        "description": "IntelliJ-style throw new statement; let LSP complete the exception type"
+    },
+    "JUnit5 Test (GWT)": {
+        "prefix": ["test", "tst"],
+        "body": [
+            "@Test",
+            "@DisplayName(\"${1:테스트코드명}\")",
+            "void ${1} () {",
+            "    // GIVEN",
+            "    $3",
+            "    // WHEN",
+            "    $4",
+            "    // THEN",
+            "    fail(\"Should be implemented\");",
+            "}"
+        ],
+        "description": "JUnit5 @Test + @DisplayName with GIVEN/WHEN/THEN"
+    },
+    "JUnit5 Test Comment (GWT)": {
+        "prefix": ["gwt"],
+        "body": [
+            "    // GIVEN",
+            "    ",
+            "    // WHEN",
+            "    ",
+            "    // THEN",
+            "    ",
+            "    fail(\"Should be implemented\");"
+        ],
+        "description": "JUnit5 @Test BDD comment"
+    },
+    "JUnit5 Assert Throws": {
+        "prefix": ["athr"],
+        "body": ["assertThrows(${1:Exception}.class, () -> {", "    $0", "});"],
+        "description": "JUnit5 assertThrows block"
+    },
+    "JUnit5 BeforeEach": {
+        "prefix": ["beforeEach", "bef"],
+        "body": ["@BeforeEach", "void setUp() {", "    $0", "}"],
+        "description": "JUnit5 @BeforeEach lifecycle method"
+    },
+    "JUnit5 BeforeAll": {
+        "prefix": ["beforeAll", "befa"],
+        "body": ["@BeforeAll", "static void setUpAll() {", "    $0", "}"],
+        "description": "JUnit5 @BeforeAll lifecycle method"
+    },
+    "JUnit5 AfterEach": {
+        "prefix": ["afterEach", "aft"],
+        "body": ["@AfterEach", "void tearDown() {", "    $0", "}"],
+        "description": "JUnit5 @AfterEach lifecycle method"
+    },
+    "JUnit5 AfterAll": {
+        "prefix": ["afterAll", "afta"],
+        "body": ["@AfterAll", "static void tearDownAll() {", "    $0", "}"],
+        "description": "JUnit5 @AfterAll lifecycle method"
+    },
+    "JUnit5 Nested Test Class": {
+        "prefix": ["nested", "nest"],
+        "body": [
+            "@Nested",
+            "@DisplayName(\"${1:테스트그룹명}\")",
+            "class ${2:TestGroup} {",
+            "    $0",
+            "}"
+        ],
+        "description": "JUnit5 @Nested test class"
+    },
+    "JUnit5 Parameterized CsvSource": {
+        "prefix": ["parameterizedTest", "ptest"],
+        "body": [
+            "@ParameterizedTest",
+            "@CsvSource({",
+            "    \"${1:input}, ${2:expected}\"",
+            "})",
+            "@DisplayName(\"${3:테스트코드명}\")",
+            "void ${4:testName}(${5:String input}, ${6:String expected}) {",
+            "    $0",
+            "}"
+        ],
+        "description": "JUnit5 parameterized test with @CsvSource"
+    },
+    "SLF4J Logger": {
+        "prefix": ["logger", "log"],
+        "body": [
+            "private static final Logger log = LoggerFactory.getLogger(${1:ClassName}.class);"
+        ],
+        "description": "SLF4J logger field"
+    },
+    "JUnit5 TempDir": {
+        "prefix": ["tempDir", "tdir"],
+        "body": ["@TempDir", "Path ${1:tempDir};"],
+        "description": "JUnit5 @TempDir field"
+    },
+    "Testcontainers Container": {
+        "prefix": ["testcontainers", "tc"],
+        "body": [
+            "@Container",
+            "static final GenericContainer<?> ${1:container} = new GenericContainer<>(\"${2:image:tag}\")",
+            "    .withExposedPorts(${3:8080});"
+        ],
+        "description": "Testcontainers generic container field"
+    }
 }

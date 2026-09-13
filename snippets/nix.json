@@ -1,6 +1,6 @@
 {
   "Nix Test (GWT)": {
-    "prefix": "test",
+    "prefix": ["test", "tst"],
     "body": [
       "${1:테스트코드명} = pkgs.runCommand \"${2:테스트코드명}\" { } ''",
       "  # GIVEN",
@@ -13,5 +13,80 @@
       "'';"
     ],
     "description": "Nix pkgs.runCommand test derivation with GIVEN/WHEN/THEN"
+  },
+  "Nix Test Script": {
+    "prefix": ["testScript", "tscript"],
+    "body": [
+      "${1:테스트코드명} = pkgs.writeShellApplication {",
+      "  name = \"${2:테스트코드명}\";",
+      "  runtimeInputs = [",
+      "    $3",
+      "  ];",
+      "  text = ''",
+      "    set -euo pipefail",
+      "    $0",
+      "  '';",
+      "};"
+    ],
+    "description": "Nix test helper script"
+  },
+  "Nix Test Fixture Derivation": {
+    "prefix": ["fixture", "fix"],
+    "body": [
+      "${1:fixture} = pkgs.runCommand \"${2:fixture}\" { } ''",
+      "  mkdir -p $out",
+      "  $0",
+      "'';"
+    ],
+    "description": "Nix fixture derivation"
+  },
+  "Nix Check Phase": {
+    "prefix": ["checkPhase", "check"],
+    "body": [
+      "doCheck = true;",
+      "checkPhase = ''",
+      "  runHook preCheck",
+      "  $0",
+      "  runHook postCheck",
+      "'';"
+    ],
+    "description": "Nix derivation checkPhase"
+  },
+  "Nix mkShell": {
+    "prefix": ["mkShell", "shell"],
+    "body": [
+      "pkgs.mkShell {",
+      "  packages = with pkgs; [",
+      "    $1",
+      "  ];",
+      "  shellHook = ''",
+      "    $0",
+      "  '';",
+      "}"
+    ],
+    "description": "Nix development shell"
+  },
+  "Nix Overlay": {
+    "prefix": ["overlay", "ovl"],
+    "body": [
+      "final: prev: {",
+      "  ${1:package} = prev.${1:package}.overrideAttrs (old: {",
+      "    $0",
+      "  });",
+      "}"
+    ],
+    "description": "Nix overlay skeleton"
+  },
+  "Nix lib.runTests": {
+    "prefix": ["runTests", "runt"],
+    "body": [
+      "lib.runTests {",
+      "  test${1:Name} = {",
+      "    expr = ${2:actual};",
+      "    expected = ${3:expected};",
+      "  };",
+      "}"
+    ],
+    "description": "Nix lib.runTests block"
   }
 }

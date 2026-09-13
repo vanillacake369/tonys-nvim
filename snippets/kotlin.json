@@ -1,18 +1,95 @@
 {
-  "JUnit5 Test (GWT)": {
-    "prefix": "test",
-    "body": [
-      "@Test",
-      "@DisplayName(\"${1:테스트코드명}\")",
-      "fun `${2:테스트코드명}`() {",
-      "    // GIVEN",
-      "    $3",
-      "    // WHEN",
-      "    $4",
-      "    // THEN",
-      "    fail(\"Should be implemented\")",
-      "}"
-    ],
-    "description": "JUnit5 @Test + backticked Korean name with GIVEN/WHEN/THEN"
-  }
+    "JUnit5 Test (GWT)": {
+        "prefix": ["test", "tst"],
+        "body": [
+            "@Test",
+            "@DisplayName(\"${1:테스트코드명}\")",
+            "fun `${1}`() {",
+            "    // GIVEN",
+            "    $2",
+            "    // WHEN",
+            "    $3",
+            "    // THEN",
+            "    fail(\"Should be implemented\")",
+            "}"
+        ],
+        "description": "JUnit5 @Test + backticked Korean name with GIVEN/WHEN/THEN"
+    },
+    "JUnit5 Test Comment (GWT)": {
+        "prefix": ["gwt"],
+        "body": [
+            "    // GIVEN",
+            "    ",
+            "    // WHEN",
+            "    ",
+            "    // THEN",
+            "    ",
+            "    fail(\"Should be implemented\")"
+        ],
+        "description": "JUnit5 @Test BDD comment"
+    },
+    "JUnit5 BeforeEach": {
+        "prefix": ["beforeEach", "bef"],
+        "body": ["@BeforeEach", "fun setUp() {", "    $0", "}"],
+        "description": "JUnit5 @BeforeEach lifecycle method"
+    },
+    "JUnit5 BeforeAll": {
+        "prefix": ["beforeAll", "befa"],
+        "body": ["@BeforeAll", "fun setUpAll() {", "    $0", "}"],
+        "description": "JUnit5 @BeforeAll lifecycle method"
+    },
+    "JUnit5 AfterEach": {
+        "prefix": ["afterEach", "aft"],
+        "body": ["@AfterEach", "fun tearDown() {", "    $0", "}"],
+        "description": "JUnit5 @AfterEach lifecycle method"
+    },
+    "JUnit5 AfterAll": {
+        "prefix": ["afterAll", "afta"],
+        "body": ["@AfterAll", "fun tearDownAll() {", "    $0", "}"],
+        "description": "JUnit5 @AfterAll lifecycle method"
+    },
+    "JUnit5 Nested Test Class": {
+        "prefix": ["nested", "nest"],
+        "body": [
+            "@Nested",
+            "@DisplayName(\"${1:테스트그룹명}\")",
+            "inner class ${2:TestGroup} {",
+            "    $0",
+            "}"
+        ],
+        "description": "JUnit5 @Nested test class"
+    },
+    "JUnit5 Parameterized CsvSource": {
+        "prefix": ["parameterizedTest", "ptest"],
+        "body": [
+            "@ParameterizedTest",
+            "@CsvSource(",
+            "    \"${1:input}, ${2:expected}\"",
+            ")",
+            "@DisplayName(\"${3:테스트코드명}\")",
+            "fun `${4:테스트코드명}`(${5:input}: String, ${6:expected}: String) {",
+            "    $0",
+            "}"
+        ],
+        "description": "JUnit5 parameterized test with @CsvSource"
+    },
+    "SLF4J Logger": {
+        "prefix": ["logger", "log"],
+        "body": ["private val log = LoggerFactory.getLogger(${1:ClassName}::class.java)"],
+        "description": "SLF4J logger property"
+    },
+    "JUnit5 TempDir": {
+        "prefix": ["tempDir", "tdir"],
+        "body": ["@TempDir", "lateinit var ${1:tempDir}: Path"],
+        "description": "JUnit5 @TempDir property"
+    },
+    "Testcontainers Container": {
+        "prefix": ["testcontainers", "tc"],
+        "body": [
+            "@Container",
+            "val ${1:container} = GenericContainer<Nothing>(\"${2:image:tag}\")",
+            "    .withExposedPorts(${3:8080})"
+        ],
+        "description": "Testcontainers generic container property"
+    }
 }

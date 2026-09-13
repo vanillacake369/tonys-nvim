@@ -1,0 +1,63 @@
+{
+  "Lua Test (GWT)": {
+    "prefix": ["test", "tst"],
+    "body": [
+      "-- GIVEN",
+      "${1:local subject = require(\"module\")}",
+      "",
+      "-- WHEN",
+      "local actual = ${2:nil}",
+      "",
+      "-- THEN",
+      "assert_eq(actual, ${3:nil}, \"${4:테스트코드명}\")"
+    ],
+    "description": "Lua test block with GIVEN/WHEN/THEN"
+  },
+  "Lua Spec File": {
+    "prefix": ["spec", "spf"],
+    "body": [
+      "local H = require(\"tests.helpers\")",
+      "local assert_eq = H.assert_eq",
+      "",
+      "-- GIVEN",
+      "local ${1:subject} = require(\"${2:module}\")",
+      "",
+      "-- WHEN",
+      "local actual = ${3:nil}",
+      "",
+      "-- THEN",
+      "assert_eq(actual, ${4:nil}, \"${5:테스트코드명}\")"
+    ],
+    "description": "Lua spec file skeleton using tests.helpers"
+  },
+  "Lua Require": {
+    "prefix": ["req", "require"],
+    "body": ["local ${1:name} = require(\"${2:module}\")"],
+    "description": "local require assignment"
+  },
+  "Lua Module Table": {
+    "prefix": ["mod", "module"],
+    "body": ["local M = {}", "", "$0", "", "return M"],
+    "description": "Lua module table skeleton"
+  },
+  "Lua Function": {
+    "prefix": ["fn", "func"],
+    "body": ["local function ${1:name}(${2:args})", "    $0", "end"],
+    "description": "local function"
+  },
+  "Lua Public Function": {
+    "prefix": ["mfn"],
+    "body": ["function M.${1:name}(${2:args})", "    $0", "end"],
+    "description": "module public function"
+  },
+  "Lua Pcall": {
+    "prefix": ["pcall"],
+    "body": ["local ok, ${1:result} = pcall(function()", "    $0", "end)"],
+    "description": "pcall function block"
+  },
+  "Lua Vim Notify": {
+    "prefix": ["notify"],
+    "body": ["vim.notify(${1:\"message\"}, vim.log.levels.${2:WARN})"],
+    "description": "vim.notify with log level"
+  }
+}

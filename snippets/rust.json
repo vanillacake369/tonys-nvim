@@ -1,6 +1,6 @@
 {
   "Rust Test (GWT)": {
-    "prefix": "test",
+    "prefix": ["test", "tst"],
     "body": [
       "#[test]",
       "fn ${1:테스트코드명}() {",
@@ -13,5 +13,79 @@
       "}"
     ],
     "description": "Rust #[test] with GIVEN/WHEN/THEN"
+  },
+  "Rust Test Module": {
+    "prefix": ["testMod", "tmod"],
+    "body": [
+      "#[cfg(test)]",
+      "mod tests {",
+      "    use super::*;",
+      "",
+      "    $0",
+      "}"
+    ],
+    "description": "Rust cfg(test) module"
+  },
+  "Rust Fixture Helper": {
+    "prefix": ["fixture", "fix"],
+    "body": [
+      "fn ${1:fixture}() -> ${2:Fixture} {",
+      "    $0",
+      "}"
+    ],
+    "description": "Rust test fixture helper"
+  },
+  "Rust Setup With Cleanup": {
+    "prefix": ["setup", "set"],
+    "body": [
+      "let ${1:fixture} = ${2:setup}();",
+      "$0",
+      "drop(${1:fixture});"
+    ],
+    "description": "Rust setup with explicit cleanup point"
+  },
+  "Rust OnceLock Fixture": {
+    "prefix": ["onceLock", "once"],
+    "body": [
+      "static ${1:FIXTURE}: std::sync::OnceLock<${2:Fixture}> = std::sync::OnceLock::new();",
+      "",
+      "fn ${3:fixture}() -> &'static ${2:Fixture} {",
+      "    ${1:FIXTURE}.get_or_init(|| {",
+      "        $0",
+      "    })",
+      "}"
+    ],
+    "description": "Rust shared test fixture with OnceLock"
+  },
+  "Rust Tokio Test": {
+    "prefix": ["tokioTest", "tt"],
+    "body": [
+      "#[tokio::test]",
+      "async fn ${1:테스트코드명}() -> ${2:anyhow::Result<()>} {",
+      "    $0",
+      "    Ok(())",
+      "}"
+    ],
+    "description": "async tokio test returning Result"
+  },
+  "Rust Result Test": {
+    "prefix": ["resultTest", "rt"],
+    "body": [
+      "#[test]",
+      "fn ${1:테스트코드명}() -> ${2:anyhow::Result<()>} {",
+      "    $0",
+      "    Ok(())",
+      "}"
+    ],
+    "description": "Rust test returning Result"
+  },
+  "Rust TempDir": {
+    "prefix": ["tempDir", "tdir"],
+    "body": [
+      "let ${1:temp_dir} = tempfile::tempdir()?;",
+      "let ${2:path} = ${1:temp_dir}.path();",
+      "$0"
+    ],
+    "description": "tempfile tempdir setup"
   }
 }

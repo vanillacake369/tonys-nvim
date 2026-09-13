@@ -1,6 +1,6 @@
 {
   "C Test (GWT)": {
-    "prefix": "test",
+    "prefix": ["test", "tst"],
     "body": [
       "#include <assert.h>",
       "",
@@ -14,5 +14,50 @@
       "}"
     ],
     "description": "C assert.h test function with GIVEN/WHEN/THEN"
+  },
+  "C Test Fixture Struct": {
+    "prefix": ["fixture", "fix"],
+    "body": [
+      "typedef struct {",
+      "    $1",
+      "} ${2:TestFixture};"
+    ],
+    "description": "C test fixture struct"
+  },
+  "C SetUp Function": {
+    "prefix": ["setUp", "setup"],
+    "body": [
+      "static void set_up(${1:TestFixture} *fixture) {",
+      "    $0",
+      "}"
+    ],
+    "description": "C test setup function"
+  },
+  "C TearDown Function": {
+    "prefix": ["tearDown", "tdn"],
+    "body": [
+      "static void tear_down(${1:TestFixture} *fixture) {",
+      "    $0",
+      "}"
+    ],
+    "description": "C test teardown function"
+  },
+  "C Test With Fixture": {
+    "prefix": ["fixtureTest", "ftest"],
+    "body": [
+      "static void test_${1:테스트코드명}(void) {",
+      "    ${2:TestFixture} fixture = {0};",
+      "    set_up(&fixture);",
+      "",
+      "    // WHEN",
+      "    $3",
+      "",
+      "    // THEN",
+      "    assert(0 && \"Should be implemented\");",
+      "",
+      "    tear_down(&fixture);",
+      "}"
+    ],
+    "description": "C test function with setup and teardown"
   }
 }

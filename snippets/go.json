@@ -1,6 +1,6 @@
 {
   "Go Test (GWT)": {
-    "prefix": "test",
+    "prefix": ["test", "tst"],
     "body": [
       "func Test${1:기능명}(t *testing.T) {",
       "\tt.Run(\"${2:테스트코드명}\", func(t *testing.T) {",
@@ -14,5 +14,87 @@
       "}"
     ],
     "description": "Go testing.T with subtest and GIVEN/WHEN/THEN"
+  },
+  "Go TestMain": {
+    "prefix": ["testMain", "tmain"],
+    "body": [
+      "func TestMain(m *testing.M) {",
+      "\t${1:// setup}",
+      "\tcode := m.Run()",
+      "\t${2:// teardown}",
+      "\tos.Exit(code)",
+      "}"
+    ],
+    "description": "Go TestMain with setup and teardown"
+  },
+  "Go Test Cleanup": {
+    "prefix": ["cleanup", "cln"],
+    "body": [
+      "t.Cleanup(func() {",
+      "\t$0",
+      "})"
+    ],
+    "description": "Go t.Cleanup block"
+  },
+  "Go Fixture Helper": {
+    "prefix": ["fixture", "fix"],
+    "body": [
+      "func new${1:Fixture}(t *testing.T) ${2:*Fixture} {",
+      "\tt.Helper()",
+      "\t$0",
+      "}"
+    ],
+    "description": "Go test fixture helper with t.Helper"
+  },
+  "Go Table Test": {
+    "prefix": ["tableTest", "tbl"],
+    "body": [
+      "tests := []struct {",
+      "\tname string",
+      "\t${1:input} ${2:string}",
+      "\twant ${3:string}",
+      "}{",
+      "\t{name: \"${4:case}\", ${1:input}: ${5:value}, want: ${6:expected}},",
+      "}",
+      "",
+      "for _, tt := range tests {",
+      "\tt.Run(tt.name, func(t *testing.T) {",
+      "\t\t$0",
+      "\t})",
+      "}"
+    ],
+    "description": "Go table-driven subtest skeleton"
+  },
+  "Go Context Timeout": {
+    "prefix": ["ctxTimeout", "ct"],
+    "body": [
+      "ctx, cancel := context.WithTimeout(${1:context.Background()}, ${2:5 * time.Second})",
+      "defer cancel()",
+      "$0"
+    ],
+    "description": "context.WithTimeout with defer cancel"
+  },
+  "Go HTTP Test Server": {
+    "prefix": ["httptest", "http"],
+    "body": [
+      "server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {",
+      "\tw.WriteHeader(${1:http.StatusOK})",
+      "\t_, _ = w.Write([]byte(${2:\"{}\"}))",
+      "}))",
+      "defer server.Close()",
+      "$0"
+    ],
+    "description": "httptest server with cleanup"
+  },
+  "Go Benchmark": {
+    "prefix": ["benchmark", "bench"],
+    "body": [
+      "func Benchmark${1:Name}(b *testing.B) {",
+      "\tfor i := 0; i < b.N; i++ {",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ],
+    "description": "Go benchmark skeleton"
   }
 }
