@@ -58,14 +58,17 @@ lua/plugins/
 - 일반 plugin spec 이면 `lua/plugins/core`, `lua/plugins/navigation`, `lua/plugins/ui` 중 가장 가까운 곳
 - 공통 엔진 동작이면 `lua/plugins/core/*.lua`
 
-문서에는 새 기능 목록을 추가하지 않습니다. 복잡한 의도나 제약은 해당 Lua 파일 근처에 comment tag 로 남깁니다.
+문서에는 새 기능 목록을 추가하지 않습니다. 복잡한 의도나 제약은 해당 Lua 파일
+근처에 한국어 주석 블록으로 남깁니다.
 
 ## Comment Convention
 
 - 2줄 이상이어도 `--[[ ... ]]` block comment 를 쓰지 않는다.
 - 여러 줄 설명은 각 줄을 `--`로 시작하는 line comment block 으로 쓴다.
-- 첫 줄은 가능하면 `NOTE:`, `PERF:`, `TODO:`, `FIXME:`, `HACK:`, `WARN:`, `COMPAT:` 중 하나로 시작한다.
-- `NOTE:`는 설계 이유, `PERF:`는 성능 이유, `WARN:`은 변경 위험, `COMPAT:`은 버전/환경 호환성에 쓴다.
+- 주석은 한국어로 작성한다. API 이름, plugin 이름, 명령어, filetype 같은 고유명사는 그대로 둔다.
+- 설명이 한 줄을 넘기거나 의도를 남기는 주석은 대상 코드 바깥 scope 에 둔다.
+- 코드 줄 끝 inline comment 는 타입 annotation 이나 도구 지시처럼 불가피한 경우에만 쓴다.
+- tag prefix 규칙은 쓰지 않는다. 의도는 짧은 한국어 문장으로 바로 설명한다.
 - comment block 은 직접 88 columns 안쪽으로 감싼다. `textwidth` option 은 강제하지 않는다.
 
 ## Runtime Notes
@@ -83,6 +86,13 @@ lua/plugins/
 luac -p lua/path/to/file.lua
 stylua lua/path/to/file.lua
 nvim --headless -c 'checkhealth' -c qa
+```
+
+repo 전체 기본 검증은 `just` entrypoint 로 실행합니다.
+
+```bash
+just test
+just check
 ```
 
 Plugin 설치/동기화 문제는 Neovim 안에서 `:Lazy`, `:Lazy health`, `:Lazy sync`로 확인합니다.

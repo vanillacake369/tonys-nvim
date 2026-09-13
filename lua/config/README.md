@@ -31,7 +31,7 @@ Keymap 을 그룹 단위 registry 로 관리합니다. 플러그인 spec 은 이
 
 `options.lua`
 
-Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 않거나 UX tradeoff 가 있으면 코드 근처에 comment tag 로 설명합니다.
+Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 않거나 UX tradeoff 가 있으면 코드 근처에 한국어 주석 블록으로 설명합니다.
 
 `lazy.lua`
 
@@ -45,9 +45,10 @@ Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 �
 
 - README 에 option table, keymap table, language matrix 를 두지 않는다.
 - 코드와 같은 내용을 문서에 반복하지 않는다.
-- 설정 이유가 중요한 경우 Lua 파일 근처에 tagged line comment 로 남긴다.
+- 설정 이유가 중요한 경우 Lua 파일 근처에 한국어 line comment block 으로 남긴다.
 - 2줄 이상 주석도 `--[[ ... ]]` 대신 각 줄을 `--`로 시작한다.
-- 첫 줄 tag 는 `NOTE:`, `PERF:`, `TODO:`, `FIXME:`, `HACK:`, `WARN:`, `COMPAT:` 중에서 고른다.
+- tag prefix 규칙은 쓰지 않는다. 의도는 짧은 한국어 문장으로 바로 설명한다.
+- 코드 줄 끝 inline comment 는 타입 annotation 이나 도구 지시처럼 불가피한 경우에만 쓴다.
 - comment block 은 직접 88 columns 안쪽으로 감싼다.
 - 새 keymap 은 `desc`를 갖게 해서 which-key 와 picker 에서 의도가 드러나게 한다.
 - plugin lazy-load 와 buffer-local attach 에 필요한 keymap group 은 `keymaps.bind(...)` adapter 를 사용한다.
@@ -70,6 +71,8 @@ Neovim 기본 편집 동작을 설정합니다. 값의 의미가 자명하지 �
 luac -p lua/config/keymaps.lua
 luac -p lua/plugins/lang/rust.lua
 stylua lua/config/keymaps.lua lua/plugins/lang/rust.lua
+just test
+just check
 ```
 
 Neovim runtime 이 필요한 변경은 headless require 또는 `:checkhealth`로 확인합니다.
