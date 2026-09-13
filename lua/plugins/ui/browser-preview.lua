@@ -11,12 +11,16 @@ local root_markers = {
     "docsify.json",
 }
 
+local DEFAULT_PREVIEW_PORT = 5500
+local PREVIEW_PORT_SCAN_WINDOW = 20
+
 local function supported_file(path)
     local ok, utils = pcall(require, "livepreview.utils")
     return ok and utils.supported_filetype(path)
 end
 
 local function preview_file(path)
+    -- 명시 path 가 없으면 현재/열린 buffer 중 live-preview 지원 파일을 찾는다.
     if path and path ~= "" then
         path = vim.fs.normalize(path)
         if not vim.startswith(path, "/") then
@@ -70,7 +74,7 @@ local function port_used_by_other_process(port)
 end
 
 local function preview_port(port)
-    for candidate = port, port + 20 do
+    for candidate = port, port + PREVIEW_PORT_SCAN_WINDOW do
         if not port_used_by_other_process(candidate) then
             return candidate
         end
@@ -79,6 +83,7 @@ local function preview_port(port)
 end
 
 function M.start(path)
+    -- preview 대상 파일의 root 를 webroot 로 잡고 사용 가능한 port 로 브라우저를 연다.
     local file = preview_file(path)
     if not file then
         vim.notify("live-preview.nvim only supports markdown, asciidoc, svg and html files", vim.log.levels.ERROR)
@@ -116,6 +121,7 @@ function M.close()
 end
 
 function M.command(opts)
+    -- :LivePreview 명령을 start/close/pick/help subcommand 로 라우팅한다.
     local subcommand = opts.fargs[1]
     if subcommand == "start" then
         M.start(opts.fargs[2])
@@ -130,6 +136,7 @@ function M.command(opts)
 end
 
 function M.setup(opts)
+    -- live-preview 기본 설정과 사용자 명령 completion 을 함께 등록한다.
     require("livepreview.config").set(opts)
     vim.api.nvim_create_user_command("LivePreview", M.command, {
         nargs = "*",
@@ -150,6 +157,8 @@ function M.setup(opts)
     })
 end
 
+-- markdown/html/asciidoc/svg 를 브라우저에서 live preview 하기 위해 추가.
+-- Snacks picker 와 함께 파일 선택/preview workflow 를 맞춘다.
 M[1] = "brianhuster/live-preview.nvim"
 M.dependencies = { "folke/snacks.nvim" }
 M.cmd = { "LivePreview" }
@@ -159,7 +168,7 @@ M.keys = {
     { "<leader>mq", M.close, desc = "Stop browser live preview" },
 }
 M.opts = {
-    port = 5500,
+    port = DEFAULT_PREVIEW_PORT,
     browser = "default",
     dynamic_root = false,
     sync_scroll = true,

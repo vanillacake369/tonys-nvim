@@ -1,31 +1,31 @@
--- Line numbers
+-- 줄 번호
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.showmode = false
 
--- Max width
+-- 최대 줄 너비
 vim.opt.textwidth = 80
 
--- Tabs and indentation
+-- 탭과 들여쓰기
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.softtabstop = 4
 vim.opt.expandtab = true
 vim.opt.autoindent = true
 
--- Allow mouse
+-- 마우스 입력 허용
 vim.opt.mouse = "a"
 
--- Wrap
+-- 자동 줄바꿈
 vim.opt.wrap = false
 
--- Folds
+-- 접기
 vim.opt.foldenable = true
 vim.opt.foldmethod = "manual"
 vim.opt.foldlevelstart = 99
 vim.opt.foldcolumn = "1"
 
--- NOTE: search is incremental and case-insensitive unless uppercase is typed.
+-- 검색은 incremental 로 수행하고, 대문자를 입력하기 전까지는 대소문자를 구분하지 않는다.
 vim.opt.hlsearch = true
 vim.opt.incsearch = true
 vim.opt.ignorecase = true

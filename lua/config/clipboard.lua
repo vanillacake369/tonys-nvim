@@ -1,14 +1,14 @@
--- NOTE: disable unnamed clipboard so normal-mode c/cc/d/dd do not overwrite
--- the system clipboard. Deletes use the black-hole register instead.
+-- 이름 없는 clipboard 연동을 끄고 normal mode c/cc/d/dd 가 시스템 clipboard 를
+-- 덮어쓰지 않게 한다. 삭제 동작은 black-hole register 로 보낸다.
 vim.keymap.set("n", "d", '"_d')
 vim.keymap.set("n", "dd", '"_dd')
 
--- NOTE: enable explicit system clipboard access through +/* registers.
+-- +/* register 를 통한 명시적인 시스템 clipboard 접근만 켠다.
 vim.opt.clipboard = "unnamedplus"
 
--- NOTE: choose the clipboard provider by launch platform.
+-- 실행 platform 에 맞춰 clipboard provider 를 고른다.
 if vim.fn.has("mac") == 1 then
-    -- NOTE: macOS uses pbcopy/pbpaste.
+    -- macOS 는 pbcopy/pbpaste 를 사용한다.
     vim.g.clipboard = {
         name = "macOS-clipboard",
         copy = {
@@ -22,7 +22,7 @@ if vim.fn.has("mac") == 1 then
         cache_enabled = 0,
     }
 elseif vim.fn.has("wsl") == 1 then
-    -- NOTE: WSL uses the Windows clipboard bridge.
+    -- WSL 은 Windows clipboard bridge 를 사용한다.
     vim.g.clipboard = {
         name = "WslClipboard",
         copy = {
@@ -36,7 +36,7 @@ elseif vim.fn.has("wsl") == 1 then
         cache_enabled = 0,
     }
 elseif vim.fn.has("unix") == 1 then
-    -- Linux: xclip 또는 xsel 사용
+    -- Linux 는 xclip 또는 xsel 을 사용한다.
     if vim.fn.executable("xclip") == 1 then
         vim.g.clipboard = {
             name = "xclip",

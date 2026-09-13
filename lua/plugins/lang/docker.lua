@@ -1,4 +1,5 @@
 return {
+    -- docker-compose YAML 전용 LSP 를 공통 lspconfig 서버 목록에 등록한다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
@@ -9,6 +10,7 @@ return {
             }
         end,
     },
+    -- Dockerfile parser 를 treesitter 공통 설치 목록에 추가한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -16,6 +18,7 @@ return {
             vim.list_extend(opts.ensure_installed, { "dockerfile" })
         end,
     },
+    -- Dockerfile lint 는 hadolint 로 nvim-lint 에 연결한다.
     {
         "mfussenegger/nvim-lint",
         opts = function(_, opts)

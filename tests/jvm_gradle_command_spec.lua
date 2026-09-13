@@ -2,8 +2,8 @@ local H = require("tests.helpers")
 local assert_eq = H.assert_eq
 local runner = H.gradle_runner()
 
--- NOTE: command test 는 argv contract 를 고정한다. 실제 Gradle build 를 실행하지
--- 않고 option 순서, wrapper fallback, shell join, debug, watch 회귀를 잡는다.
+-- 명령 spec 은 argv 계약을 고정한다. 실제 Gradle build 를 실행하지 않고
+-- option 순서, wrapper 대체 경로, shell 결합, debug, watch 회귀를 잡는다.
 
 -- GIVEN
 local root = H.temp_root()

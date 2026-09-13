@@ -1,4 +1,6 @@
 return {
+    -- HTML/CSS/JSON LSP 서버를 공통 lspconfig 서버 목록에 등록한다.
+    -- 웹 기본 filetype 들을 VSCode language server 묶음으로 처리한다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
@@ -17,6 +19,7 @@ return {
             }
         end,
     },
+    -- HTML/CSS/JSON parser 를 treesitter 공통 설치 목록에 추가한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -24,6 +27,7 @@ return {
             vim.list_extend(opts.ensure_installed, { "html", "css", "json", "json5" })
         end,
     },
+    -- 웹 파일 formatter 는 prettier 로 conform 에 연결한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)

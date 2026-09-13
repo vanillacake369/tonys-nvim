@@ -2,9 +2,9 @@ local H = require("tests.helpers")
 local assert_eq = H.assert_eq
 local runner = H.gradle_runner()
 
--- NOTE: cursor test 는 normal run, verbose run, debug run 이 공유하는 nearest-test
+-- cursor spec 은 일반 실행, verbose 실행, debug 실행이 공유하는 nearest-test
 -- filter 동작을 고정한다. cursor resolver 는 production slice 안에 의도적으로
--- 남겨두었으므로 command 구성 경로로 검증한다.
+-- 남겨두었으므로 명령 구성 경로로 검증한다.
 
 -- GIVEN
 local root = H.temp_root()

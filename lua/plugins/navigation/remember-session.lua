@@ -1,9 +1,10 @@
 return {
+    -- 작업 디렉터리별 세션을 자동 저장/복원하기 위해 추가.
+    -- 복원된 버퍼에는 LSP/treesitter attach 이벤트를 다시 흘려준다.
     "rmagatti/auto-session",
     lazy = false,
     dependencies = {},
     config = function()
-        -- WARN:
         -- unloaded buffer 를 강제로 bufload 하면 swap 경고와 LSP 재스캔이 다시 발생할 수 있다.
         -- 세션 복원 후 attach 대상은 이미 로드된 일반 파일 buffer 로만 제한한다.
         local function is_loaded_file_buffer(buf)

@@ -1,6 +1,17 @@
+local SNACKS_PRIORITY = 1000
+local IMAGE_PREVIEW_MAX_WIDTH = 80
+local IMAGE_PREVIEW_MAX_HEIGHT = 30
+local NOTIFIER_TIMEOUT_MS = 3000
+local PICKER_LAYOUT_WIDTH_RATIO = 0.95
+local PICKER_LAYOUT_HEIGHT_RATIO = 0.85
+local PICKER_TREE_WIDTH_RATIO = 0.35
+local PICKER_PREVIEW_WIDTH_RATIO = 0.65
+
 return {
+    -- Snacks 를 picker, explorer, terminal, notifier, image preview 의 공통 UI 레이어로 쓴다.
+    -- telescope 스타일 layout 과 UI toggle 을 한 플러그인 spec 에 모아둔다.
     "folke/snacks.nvim",
-    priority = 1000,
+    priority = SNACKS_PRIORITY,
     lazy = false,
     opts = {
         bigfile = { enabled = true },
@@ -15,13 +26,13 @@ return {
                 enabled = false,
                 inline = true,
                 float = true,
-                max_width = 80,
-                max_height = 30,
+                max_width = IMAGE_PREVIEW_MAX_WIDTH,
+                max_height = IMAGE_PREVIEW_MAX_HEIGHT,
             },
         },
         indent = { enabled = true },
         input = { enabled = true },
-        notifier = { enabled = true, timeout = 3000 },
+        notifier = { enabled = true, timeout = NOTIFIER_TIMEOUT_MS },
         terminal = { enabled = true },
         picker = {
             enabled = true,
@@ -30,21 +41,21 @@ return {
                 telescope = {
                     layout = {
                         box = "horizontal",
-                        width = 0.95,
-                        height = 0.85,
+                        width = PICKER_LAYOUT_WIDTH_RATIO,
+                        height = PICKER_LAYOUT_HEIGHT_RATIO,
                         {
                             box = "vertical",
                             border = "rounded",
                             title = " 📂 Project Tree ",
                             { win = "input", height = 1, border = "bottom" },
                             { win = "list", border = "none" },
-                            width = 0.35,
+                            width = PICKER_TREE_WIDTH_RATIO,
                         },
                         {
                             win = "preview",
                             title = " 👁️ Preview ",
                             border = "rounded",
-                            width = 0.65,
+                            width = PICKER_PREVIEW_WIDTH_RATIO,
                         },
                     },
                 },
@@ -77,6 +88,7 @@ return {
         return require("config.keymaps").bind({ "find", "terminal" })
     end,
     init = function()
+        -- VeryLazy 이후 Snacks 전역 helper 와 UI toggle keymap 을 등록한다.
         vim.api.nvim_create_autocmd("User", {
             pattern = "VeryLazy",
             callback = function()
@@ -90,7 +102,7 @@ return {
 
                 vim.print = _G.dd
 
-                -- UI Toggles
+                -- UI 토글
                 Snacks.toggle.option("spell", { name = "[UI] Spelling" }):map("<leader>us")
                 Snacks.toggle.option("wrap", { name = "[UI] Wrap" }):map("<leader>uw")
                 Snacks.toggle.option("relativenumber", { name = "[UI] Relative Number" }):map("<leader>uL")

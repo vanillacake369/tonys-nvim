@@ -1,6 +1,9 @@
--- Code Runner Configuration (Overseer)
+-- Overseer 기반 code runner 설정
 
--- 1. Helper Functions (Project & File detection)
+-- Project/file 탐지 helper
+local TASK_LIST_HEIGHT_RATIO = 0.5
+local TASK_LIST_DEFAULT_DETAIL = 1
+
 local function get_buf_file()
     return vim.fn.expand("%:p")
 end
@@ -20,7 +23,7 @@ local function read_file(path)
     return table.concat(vim.fn.readfile(path), "\n")
 end
 
--- Java & Gradle specific detection
+-- Java/Gradle project 탐지
 local function get_gradle_root_from(dir)
     return find_upward({ "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "gradlew" }, dir)
 end
@@ -29,7 +32,7 @@ local function get_gradle_root()
     return get_gradle_root_from(get_buf_dir())
 end
 
--- Rust / Cargo detection
+-- Rust/Cargo project 탐지
 local function get_cargo_root_from(dir)
     return find_upward({ "Cargo.toml" }, dir)
 end
@@ -44,8 +47,8 @@ local function require_executable(name)
     end
 end
 
--- NOTE: find the Java test buffer that invoked OverseerRun. Snacks picker moves
--- focus before the builder runs, so current window/buffer is unreliable.
+-- OverseerRun 을 호출한 Java test buffer 를 찾는다.
+-- Snacks picker 는 builder 실행 전에 focus 를 옮기므로 현재 window/buffer 를 믿을 수 없다.
 local function find_java_test_window()
     local function as_target(bufnr)
         if not bufnr or bufnr <= 0 then
@@ -109,7 +112,7 @@ local function get_java_classpath_root(file)
     return root or vim.fn.fnamemodify(file, ":h")
 end
 
--- 3. Templates & Config
+-- Template 과 실행 설정
 local function default_components()
     return {
         { "open_output", direction = "float", on_start = "always", focus = true },
@@ -119,8 +122,8 @@ local function default_components()
     }
 end
 
--- NOTE: Gradle failures reopen output, parse stack frames into quickfix, and
--- chain-open the HTML report for expected/actual details.
+-- Gradle 실패 시 output 을 다시 열고 stack frame 을 quickfix 로 파싱한다.
+-- expected/actual 상세 확인을 위해 HTML report 도 이어서 연다.
 local OPENER = (vim.uv or vim.loop).os_uname().sysname == "Darwin" and "open" or "xdg-open"
 
 local function gradle_test_components(root)
@@ -144,7 +147,7 @@ local function gradle_test_components(root)
     }
 end
 
--- NOTE: preserve the Gradle exit code while opening the HTML report on failure.
+-- 실패 시 HTML report 를 열면서도 Gradle exit code 는 보존한다.
 local function with_report_on_failure(root, cmd)
     local quoted = {}
     for _, a in ipairs(cmd) do
@@ -193,7 +196,7 @@ local templates = {
             local cmd = run_cmds[ft] and vim.list_extend({ unpack(run_cmds[ft]) }, { file }) or { file }
             local cwd = nil
             if ft == "c" then
-                -- NOTE: 단일 C 실행은 임시 binary 를 trap 으로 정리한다.
+                -- 단일 C 실행은 임시 binary 를 trap 으로 정리한다.
                 -- project build system 이 없는 scratch 파일용 빠른 경로다.
                 local out = vim.fn.tempname() .. "-" .. vim.fn.fnamemodify(file, ":t:r")
                 cmd = {
@@ -210,7 +213,7 @@ local templates = {
             elseif ft == "rust" then
                 local root = get_cargo_root()
                 if root then
-                    -- NOTE: Cargo project 에서는 package entrypoint 를 실행.
+                    -- Cargo project 에서는 package entrypoint 를 실행.
                     -- 단일 파일 rustc 경로는 Cargo.toml 없을 때만 fallback.
                     cmd = { "cargo", "run" }
                     cwd = root
@@ -233,8 +236,8 @@ local templates = {
         end,
         condition = { filetype = vim.tbl_keys(run_cmds) },
     },
-    -- WARN: overseer.SearchCondition only honors `filetype` and `dir`.
-    -- Defensive checks live in builder because condition.callback is ignored.
+    -- overseer.SearchCondition 은 `filetype` 과 `dir` 만 반영한다.
+    -- condition.callback 은 무시되므로 방어 검사는 builder 안에 둔다.
     {
         name = "Java: Compile & Run (Single File)",
         builder = function()
@@ -298,8 +301,8 @@ local templates = {
         end,
         condition = { filetype = { "java" } },
     },
-    -- NOTE: neotest-java owns method-level test runs because Overseer has no
-    -- cursor context, gutter signs, or per-test status model.
+    -- method 단위 test 실행은 neotest-java 가 소유한다.
+    -- Overseer 에는 cursor context, gutter sign, test별 status model 이 없다.
     {
         name = "Cargo: Run",
         builder = function()
@@ -378,6 +381,8 @@ local templates = {
 }
 
 return {
+    -- Overseer 로 파일 실행, Gradle/Cargo/Go/Nix 작업을 task UI 에 모은다.
+    -- 언어별 runner template 을 등록해 빌드/테스트 output 을 quickfix 와 연결한다.
     "stevearc/overseer.nvim",
     cmd = {
         "OverseerRun",
@@ -391,7 +396,12 @@ return {
         return require("config.keymaps").bind("runner")
     end,
     opts = {
-        task_list = { direction = "bottom", min_height = 0.5, max_height = 0.5, default_detail = 1 },
+        task_list = {
+            direction = "bottom",
+            min_height = TASK_LIST_HEIGHT_RATIO,
+            max_height = TASK_LIST_HEIGHT_RATIO,
+            default_detail = TASK_LIST_DEFAULT_DETAIL,
+        },
         templates = { "builtin" },
     },
     config = function(_, opts)
@@ -402,7 +412,7 @@ return {
             group = group,
             pattern = "OverseerOutput",
             callback = function(args)
-                -- NOTE: Overseer output 은 float/terminal 양쪽에서 열린다.
+                -- Overseer output 은 float/terminal 양쪽에서 열린다.
                 -- buffer-local q/Esc 로 같은 buffer 의 모든 window 를 닫는다.
                 local close_output = function()
                     for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do
@@ -416,6 +426,7 @@ return {
             end,
         })
         for _, template in ipairs(templates) do
+            -- 파일타입별 custom template 을 builtin template 옆에 등록한다.
             overseer.register_template(template)
         end
     end,

@@ -1,4 +1,6 @@
 return {
+    -- Nix LSP(nixd)를 공통 lspconfig 서버 목록에 등록한다.
+    -- flake registry 와 alejandra formatting 설정을 서버 쪽에도 맞춘다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
@@ -8,7 +10,7 @@ return {
                 filetypes = { "nix" },
                 settings = {
                     nixd = {
-                        -- NOTE: home-manager 가 pin 한 global flake registry 사용.
+                        -- home-manager 가 pin 한 global flake registry 사용.
                         nixpkgs = {
                             expr = 'import (builtins.getFlake "nixpkgs") { }',
                         },
@@ -23,6 +25,7 @@ return {
             }
         end,
     },
+    -- Nix parser 를 treesitter 공통 설치 목록에 추가한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -30,6 +33,7 @@ return {
             vim.list_extend(opts.ensure_installed, { "nix" })
         end,
     },
+    -- Nix lint 는 statix/deadnix 를 nvim-lint 에 연결한다.
     {
         "mfussenegger/nvim-lint",
         opts = function(_, opts)
@@ -37,6 +41,7 @@ return {
             opts.linters_by_ft.nix = { "statix", "deadnix" }
         end,
     },
+    -- Nix formatter 는 alejandra 로 conform 에 연결한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)

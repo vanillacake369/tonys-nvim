@@ -1,5 +1,7 @@
 local M = {}
 
+-- render-markdown 으로 markdown/mdx buffer 를 읽기 좋은 inline preview 로 표시한다.
+-- 이미지 preview 명령은 Snacks image doc attach 를 직접 제어하는 보조 layer 다.
 M[1] = "MeanderingProgrammer/render-markdown.nvim"
 M.dependencies = { "nvim-mini/mini.icons" }
 M.ft = { "markdown", "mdx" }
@@ -15,8 +17,8 @@ end
 local group = vim.api.nvim_create_augroup("MarkdownPreview", { clear = true })
 
 local function auto_image_preview_enabled()
-    -- WARN: terminal image protocol is unstable in zellij/wezterm sessions.
-    -- Inline image preview stays opt-in; browser preview is the default.
+    -- zellij/wezterm session 에서는 terminal image protocol 이 불안정하다.
+    -- inline image preview 는 opt-in 으로 두고 browser preview 를 기본값으로 쓴다.
     return vim.g.markdown_image_auto_preview == true
 end
 
@@ -31,8 +33,8 @@ local function is_markdown_buffer(bufnr)
 end
 
 local function remove_snacks_doc_autocmds(bufnr)
-    -- NOTE: Snacks image doc attach creates buffer-local autocmds. Clear the
-    -- augroup too, otherwise placements can return after manual disable/refresh.
+    -- Snacks image doc attach 는 buffer-local autocmd 를 만든다.
+    -- augroup 까지 지우지 않으면 수동 비활성화/새로고침 뒤 placement 가 되살아날 수 있다.
     pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.inline." .. bufnr)
     pcall(vim.api.nvim_del_augroup_by_name, "snacks.image.doc." .. bufnr)
 end
@@ -45,6 +47,7 @@ local function clean_placements(bufnr)
 end
 
 function M.enable(bufnr)
+    -- 현재 markdown buffer 에 Snacks inline image preview 를 붙인다.
     bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or (bufnr or vim.api.nvim_get_current_buf())
     if not is_markdown_buffer(bufnr) then
         return
@@ -61,6 +64,7 @@ function M.enable(bufnr)
 end
 
 function M.disable(bufnr)
+    -- buffer-local image preview autocmd 와 placement 를 지워 inline preview 를 끈다.
     bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or (bufnr or vim.api.nvim_get_current_buf())
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
@@ -73,6 +77,7 @@ function M.disable(bufnr)
 end
 
 function M.toggle(bufnr)
+    -- 현재 buffer 의 markdown image preview 상태를 토글한다.
     bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or (bufnr or vim.api.nvim_get_current_buf())
     if vim.b[bufnr].markdown_image_preview_enabled then
         M.disable(bufnr)
@@ -82,23 +87,26 @@ function M.toggle(bufnr)
 end
 
 function M.refresh(bufnr)
+    -- asset cache 와 placement 를 비운 뒤 image preview 를 다시 붙인다.
     bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or (bufnr or vim.api.nvim_get_current_buf())
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
     end
 
-    -- NOTE: clear resolver cache and Snacks placements together so renamed or
-    -- moved assets resolve immediately in the same buffer.
+    -- 이름이 바뀌었거나 이동된 asset 이 같은 buffer 에서 즉시 해석되도록
+    -- resolver cache 와 Snacks placement 를 함께 비운다.
     require("plugins.core.paste-img").clear_caches(bufnr)
     M.disable(bufnr)
     M.enable(bufnr)
 end
 
 function M.toggle_render()
+    -- render-markdown 의 현재 buffer render 상태를 토글한다.
     pcall(vim.cmd, "RenderMarkdown buf_toggle")
 end
 
 function M.setup()
+    -- Markdown preview/render 관련 사용자 명령을 한 곳에서 등록한다.
     for _, command in ipairs({
         {
             "MarkdownImageEnable",

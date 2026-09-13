@@ -1,4 +1,6 @@
 return {
+    -- JS/TS 계열 LSP 를 typescript-language-server 로 공통 등록한다.
+    -- React/JSX/TSX filetype 을 한 서버에 묶어 completion 과 diagnostics 를 공유한다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
@@ -16,6 +18,7 @@ return {
             }
         end,
     },
+    -- JS/TS/TSX parser 를 treesitter 공통 설치 목록에 더한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -23,6 +26,7 @@ return {
             vim.list_extend(opts.ensure_installed, { "javascript", "typescript", "tsx" })
         end,
     },
+    -- JS/TS lint 는 biomejs 로 통일해 nvim-lint 에 연결한다.
     {
         "mfussenegger/nvim-lint",
         opts = function(_, opts)
@@ -35,6 +39,7 @@ return {
             opts.linters_by_ft["typescript.tsx"] = { "biomejs" }
         end,
     },
+    -- JS/TS formatter 는 biome 를 conform filetype table 에 연결한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)
@@ -47,6 +52,8 @@ return {
             opts.formatters_by_ft["typescript.tsx"] = { "biome" }
         end,
     },
+    -- vscode-js-debug 기반 Node launch/attach DAP 설정을 등록한다.
+    -- JavaScript 와 TypeScript buffer 가 같은 debug profile 을 공유한다.
     {
         "mfussenegger/nvim-dap",
         opts = function(_, opts)

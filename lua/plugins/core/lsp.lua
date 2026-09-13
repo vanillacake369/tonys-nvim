@@ -1,4 +1,5 @@
 local CODE_ACTION_TIMEOUT_MS = 1000
+local LSP_DEBOUNCE_TEXT_CHANGES_MS = 150
 
 local M = {}
 
@@ -27,8 +28,8 @@ end
 
 function M.setup_handlers()
     vim.lsp.handlers["workspace/diagnostic/refresh"] = function()
-        -- COMPAT: Neovim 0.11 does not implement pull-diagnostic refresh.
-        -- Acknowledge the request so rust-analyzer does not warn noisily.
+        -- Neovim 0.11 은 pull-diagnostic refresh 를 구현하지 않는다.
+        -- rust-analyzer 가 시끄럽게 경고하지 않도록 요청만 인정한다.
         return vim.NIL
     end
 end
@@ -76,7 +77,7 @@ local function treesitter_range_to_vim_range(bufnr, start_row, start_col, end_ro
 end
 
 local function rust_expression_range(bufnr)
-    -- NOTE: Rust refactor action 은 커서 주변 expression 범위가 더 정확함.
+    -- Rust refactor action 은 커서 주변 expression 범위가 더 정확함.
     if vim.bo[bufnr].filetype ~= "rust" or vim.fn.mode() ~= "n" or not has_lsp_client(bufnr, "rust-analyzer") then
         return nil
     end
@@ -108,7 +109,7 @@ local function rust_expression_range(bufnr)
 end
 
 local function java_code_action(bufnr)
-    -- NOTE: jdtls 는 resolve 동작이 달라 built-in action 경로가 안정적.
+    -- jdtls 는 resolve 동작이 달라 built-in action 경로가 안정적.
     if not has_lsp_client(bufnr, "jdtls") then
         return false
     end
@@ -157,7 +158,7 @@ local function apply_workspace_edit_if_present(edit, offset_encoding)
 end
 
 local function request_full_buffer_code_actions(client, bufnr, kind)
-    -- NOTE: organizeImports/fixAll 은 buffer 전체 문맥이 필요하다.
+    -- organizeImports/fixAll 은 buffer 전체 문맥이 필요하다.
     -- 현재 줄 range 는 일부 서버가 action 을 돌려주지 않는다.
     local line_count = vim.api.nvim_buf_line_count(bufnr)
     local last_line = math.max(line_count - 1, 0)
@@ -208,14 +209,14 @@ local function run_lsp_save_actions(bufnr, client_id)
         return
     end
 
-    -- COMPAT: jdtls snapshot can crash on generic codeAction/source.fixAll.
-    -- Use the dedicated java/organizeImports request instead.
+    -- jdtls snapshot 은 generic codeAction/source.fixAll 에서 crash 날 수 있다.
+    -- 전용 java/organizeImports request 를 대신 사용한다.
     if client.name == "jdtls" then
         run_jdtls_organize_imports(client, bufnr)
         return
     end
 
-    -- NOTE: Rust save workflow 는 rustaceanvim/rustfmt 가 소유한다.
+    -- Rust save workflow 는 rustaceanvim/rustfmt 가 소유한다.
     -- generic source.fixAll 은 clippy/rust-analyzer action 과 중복될 수 있다.
     if client.name == "rust-analyzer" then
         return
@@ -229,12 +230,16 @@ local function run_lsp_save_actions(bufnr, client_id)
 end
 
 M[1] = {
+    -- JSON/YAML schema catalog 를 로컬 플러그인으로 공급하기 위해 추가.
+    -- yaml.lua 같은 언어 설정에서 schemaStore fetch 대신 이 catalog 를 사용한다.
     "b0o/SchemaStore.nvim",
     lazy = true,
     version = false,
 }
 
 M[2] = {
+    -- code action 을 snacks picker 로 고르고 적용하기 위해 추가.
+    -- Java/Rust 처럼 예외가 있는 언어는 smart_code_action 에서 분기한다.
     "rachartier/tiny-code-action.nvim",
     dependencies = {
         { "nvim-lua/plenary.nvim" },
@@ -247,6 +252,8 @@ M[2] = {
 }
 
 M[3] = {
+    -- 공통 LSP 진단, keymap attach, save action 실행을 담당하는 기본 LSP spec.
+    -- 언어별 파일은 opts.servers 만 확장해서 서버 등록을 이 spec 에 맡긴다.
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
     dependencies = { "saghen/blink.cmp" },
@@ -254,7 +261,7 @@ M[3] = {
         M.setup_diagnostics()
         M.setup_handlers()
 
-        -- NOTE: LspAttach 는 Java 포함 모든 LSP 클라이언트에 동작한다.
+        -- LspAttach 는 Java 포함 모든 LSP 클라이언트에 동작한다.
         vim.api.nvim_create_autocmd("LspAttach", {
             callback = function(attach_args)
                 local keymaps = require("config.keymaps")
@@ -262,9 +269,8 @@ M[3] = {
 
                 local attached_client_id = attach_args.data and attach_args.data.client_id or nil
 
-                -- NOTE: save actions are scoped by buffer and client id.
-                -- This prevents duplicate handlers on client restart while
-                -- preserving independent handlers for multiple attached LSPs.
+                -- save action 은 buffer 와 client id 단위로 scope 를 나눈다.
+                -- client restart 때 handler 중복을 막고, 여러 LSP 의 독립 handler 는 유지한다.
                 vim.api.nvim_create_autocmd("BufWritePre", {
                     buffer = attach_args.buf,
                     group = vim.api.nvim_create_augroup(
@@ -282,8 +288,8 @@ M[3] = {
         vim.api.nvim_create_autocmd("VimLeavePre", {
             group = vim.api.nvim_create_augroup("CleanupNixd", { clear = true }),
             callback = function()
-                -- WARN: stop nixd with SIGTERM so evaluation caches can flush.
-                -- SIGKILL can leave stale incremental evaluation state behind.
+                -- evaluation cache 를 flush 할 수 있도록 nixd 는 SIGTERM 으로 종료한다.
+                -- SIGKILL 은 오래된 incremental evaluation state 를 남길 수 있다.
                 os.execute("pkill -15 nixd")
                 os.execute("pkill -15 nixd-attrset-eval")
             end,
@@ -297,7 +303,7 @@ M[3] = {
             local final_config = vim.tbl_deep_extend("force", {
                 capabilities = base_capabilities,
                 flags = {
-                    debounce_text_changes = 150, -- 텍스트 변경 시 지연 시간 설정
+                    debounce_text_changes = LSP_DEBOUNCE_TEXT_CHANGES_MS,
                     allow_incremental_sync = true, -- 증분 동기화 활성화
                 },
             }, config)

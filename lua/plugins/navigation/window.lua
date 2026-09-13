@@ -1,5 +1,7 @@
 local M = {}
 
+-- 로컬 window navigation/fullscreen 동작을 lazy.nvim plugin spec 처럼 등록한다.
+-- snacks explorer 와 일반 editor window 사이의 focus 복구까지 이 모듈이 맡는다.
 M.name = "tonys-window-navigation"
 M.dir = vim.fn.stdpath("config")
 M.lazy = false
@@ -27,6 +29,7 @@ local function refresh_statusline()
 end
 
 function M.is_fullscreen()
+    -- lualine 에 현재 tab 이 fullscreen tab 인지 알려준다.
     clear_if_invalid()
     return fullscreen_tab == vim.api.nvim_get_current_tabpage()
 end
@@ -116,7 +119,7 @@ local function has_editor_window()
 end
 
 local function close_explorer_if_orphaned()
-    -- NOTE: editor window 가 남아 있지 않으면 orphan explorer 를 닫는다.
+    -- editor window 가 남아 있지 않으면 orphan explorer 를 닫는다.
     -- 그렇지 않으면 해당 tab 안에 유효한 navigation target 이 없다.
     local picker = get_snacks_picker("explorer")
     if not picker or has_editor_window() then
@@ -129,7 +132,7 @@ local function close_explorer_if_orphaned()
 end
 
 local function reveal_or_open_explorer()
-    -- NOTE: 현재 buffer reveal 이 가능하면 기존 explorer 를 재사용한다.
+    -- 현재 buffer reveal 이 가능하면 기존 explorer 를 재사용한다.
     -- reveal 이 실패하면 새 picker 로 fallback 한다.
     local snacks = get_snacks()
     if not (snacks and snacks.explorer) then
@@ -146,6 +149,7 @@ local function reveal_or_open_explorer()
 end
 
 function M.toggle_fullscreen()
+    -- 현재 window 를 새 tab 으로 띄우거나 기존 fullscreen tab 을 닫는다.
     clear_if_invalid()
 
     if fullscreen_tab then
@@ -169,7 +173,7 @@ function M.toggle_fullscreen()
 end
 
 function M.toggle_focus()
-    -- NOTE: focus 는 picker -> previous editor -> new explorer 순서로 toggle 한다.
+    -- focus 는 picker -> previous editor -> new explorer 순서로 toggle 한다.
     -- wincmd drift 를 피하려고 Snacks window 는 editor window 와 분리한다.
     if is_snacks_window(vim.api.nvim_get_current_win()) then
         if not focus_editor_window() then
@@ -192,6 +196,7 @@ function M.toggle_focus()
 end
 
 function M.setup()
+    -- editor window 가 사라진 뒤 남은 explorer 를 정리하는 autocmd 를 한 번만 등록한다.
     if autocmds_registered then
         return
     end

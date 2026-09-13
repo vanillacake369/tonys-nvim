@@ -1,4 +1,6 @@
 return {
+    -- bufferline 으로 열린 버퍼 목록과 LSP 진단 상태를 상단에 보여준다.
+    -- close 동작은 Snacks.bufdelete 로 연결해 window layout 을 덜 흔든다.
     "akinsho/bufferline.nvim",
     event = "VeryLazy",
     keys = function()

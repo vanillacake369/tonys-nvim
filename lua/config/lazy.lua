@@ -34,16 +34,19 @@ require("lazy").setup({
         { import = "plugins.lang" },
         { import = "plugins.navigation" },
         { import = "plugins.ui" },
+        -- 전체 plugins tree 를 한 번에 import 해야 할 때만 임시로 켠다.
         -- { import = "plugins" },
     },
     checker = { enabled = true, notify = false },
     change_detection = {
         notify = false,
     },
+    -- Nix 가 구성한 packpath/runtimepath 를 lazy.nvim 초기화 과정에서
+    -- 지우지 않도록 성능 옵션을 바깥 scope 에서 한 번에 설명한다.
     performance = {
-        reset_packpath = false, -- Nix에서 설정한 플러그인 경로를 보존합니다.
+        reset_packpath = false,
         rtp = {
-            reset = false, -- Nix에서 설정한 런타임 경로 초기화를 방지합니다.
+            reset = false,
         },
     },
 })

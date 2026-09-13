@@ -1,5 +1,7 @@
 local M = {}
 
+-- clipboard image paste, markdown asset link open, heading outline 을 한 workflow 로 묶는다.
+-- img-clip.nvim 위에 repo/blog 규칙과 Snacks image resolver 를 얹은 plugin spec 이다.
 M[1] = "HakonHarnes/img-clip.nvim"
 M.event = "VeryLazy"
 M.opts = {}
@@ -160,7 +162,7 @@ local function read_config(path)
 end
 
 local function find_repo_config(start)
-    -- NOTE: repo-local config 가 있으면 blog fallback 보다 항상 우선한다.
+    -- repo-local config 가 있으면 blog fallback 보다 항상 우선한다.
     -- 일반 Markdown repo 에 tonys-blog URL 규칙이 섞이지 않게 막는다.
     local dir = normalize_path(start)
     while dir and dir ~= "" do
@@ -190,7 +192,7 @@ local function read_package_name(root)
 end
 
 local function find_tonys_blog_root(start)
-    -- NOTE: legacy fallback 은 tonys-blog 에만 적용한다.
+    -- legacy fallback 은 tonys-blog 에만 적용한다.
     -- 구조와 package name 으로 다른 Astro repo 오탐을 막는다.
     local dir = normalize_path(start)
     while dir and dir ~= "" do
@@ -231,7 +233,7 @@ local function split_extension(name)
 end
 
 local function sanitize_filename(name)
-    -- NOTE: clipboard filename 은 Markdown link 와 filesystem 양쪽에 들어간다.
+    -- clipboard filename 은 Markdown link 와 filesystem 양쪽에 들어간다.
     -- 숨김 파일, 무확장자, 비이미지 확장자는 png 로 정규화.
     local fallback = os.date("%Y-%m-%d-%H-%M-%S")
     local cleaned = sanitize_segment(name, fallback)
@@ -358,7 +360,7 @@ local function default_plain_context(path)
 end
 
 local function context_from_config(path, config)
-    -- NOTE: configured repo 라도 contentRoot 밖 파일에는 repo URL 정책을
+    -- configured repo 라도 contentRoot 밖 파일에는 repo URL 정책을
     -- 적용하지 않는다. 잘못된 public path 생성을 막는다.
     local root = normalize_path(config.root)
     local private_root = config.privateContentRoot and normalize_path(path_join(root, config.privateContentRoot)) or nil
@@ -429,6 +431,7 @@ local function context_from_tonys_blog(path, root)
 end
 
 function M.get_context(bufnr)
+    -- 현재 markdown buffer 가 어떤 asset 저장 규칙을 써야 하는지 계산한다.
     local path = buffer_path(bufnr)
     if not path then
         return nil
@@ -438,9 +441,10 @@ function M.get_context(bufnr)
 end
 
 function M.get_context_for_path(path)
+    -- 명시 config, tonys-blog fallback, plain Markdown 순서로 asset context 를 고른다.
     path = normalize_path(path)
 
-    -- NOTE: 우선순위는 explicit config -> tonys-blog fallback -> plain Markdown.
+    -- 우선순위는 explicit config -> tonys-blog fallback -> plain Markdown.
     -- 새 repo 는 md-rule.toml 로 정책을 명시하는 쪽이 안전하다.
     local config = find_repo_config(dirname(path))
     if config then
@@ -458,7 +462,7 @@ end
 local function markdown_link_for(ctx, image_path)
     image_path = normalize_path(image_path)
 
-    -- NOTE: 저장 위치가 asset_dir 안이면 repo 정책 URL 을 사용한다.
+    -- 저장 위치가 asset_dir 안이면 repo 정책 URL 을 사용한다.
     -- 밖에 저장된 파일은 Neovim 의 상대경로 계산으로 fallback 한다.
     if ctx.markdown_link_prefix and strip_prefix(image_path, normalize_path(ctx.asset_dir) .. "/") then
         return ctx.markdown_link_prefix .. "/" .. basename(image_path)
@@ -505,6 +509,7 @@ local function paste_image_file(ctx, filename, alt)
 end
 
 function M.paste_image()
+    -- clipboard 이미지를 context 별 assets 경로에 저장하고 markdown link 를 삽입한다.
     if not is_markdown_buffer(0) then
         vim.notify("Markdown buffer에서만 이미지 paste workflow를 사용합니다.", vim.log.levels.WARN)
         return
@@ -564,7 +569,7 @@ local function trim_link_target(target)
 end
 
 function M.resolve_target_for_path(target, path)
-    -- NOTE: Markdown target 을 에디터에서 열 수 있는 local file 로 해석.
+    -- Markdown target 을 에디터에서 열 수 있는 local file 로 해석.
     -- absolute path, public URL prefix, 현재 파일 상대경로만 허용한다.
     target = trim_link_target(target)
     if target == "" then
@@ -587,7 +592,7 @@ function M.resolve_target_for_path(target, path)
         end
 
         if ctx and ctx.public_root then
-            -- WARN: map site-root URLs like `/images/...` only when publicRoot
+            -- map site-root URLs like `/images/...` only when publicRoot
             -- is explicit. Reject arbitrary root URLs instead of guessing.
             local prefixes = vim.tbl_filter(function(v)
                 return v and v ~= ""
@@ -613,6 +618,7 @@ function M.resolve_target_for_path(target, path)
 end
 
 function M.resolve_target(target, bufnr)
+    -- 현재 buffer 를 기준으로 markdown target 을 실제 open 대상까지 해석한다.
     local path = buffer_path(bufnr)
     if not path then
         return nil, "현재 buffer path를 확인할 수 없습니다."
@@ -652,6 +658,7 @@ local function open_file(path)
 end
 
 function M.open_link_under_cursor()
+    -- 커서 아래 markdown link 를 읽어 외부 URL 은 열고 로컬 asset 은 edit 한다.
     local target = link_under_cursor()
     local resolved, err = M.resolve_target(target, 0)
     if not resolved then
@@ -672,8 +679,9 @@ function M.open_link_under_cursor()
 end
 
 function M.resolve_for_snacks(file, src)
+    -- Snacks image preview 가 이해할 수 있도록 markdown 상대 경로를 실제 경로로 바꾼다.
     if file and file ~= "" then
-        -- PERF: Snacks image resolver 는 render/scroll 중 반복 호출된다.
+        -- Snacks image resolver 는 render/scroll 중 반복 호출된다.
         -- 실패도 false 로 캐시해 깨진 링크를 반복 stat 하지 않는다.
         local key = normalize_path(file) .. "\n" .. tostring(src)
         local cached = M.cache.resolved_paths[key]
@@ -699,6 +707,7 @@ function M.resolve_for_snacks(file, src)
 end
 
 function M.clear_caches(bufnr)
+    -- 파일 이동/rename 후 preview resolver 가 stale path 를 쓰지 않도록 cache 를 비운다.
     if not bufnr then
         M.cache.resolved_paths = {}
         M.cache.stats.resolve_hits = 0
@@ -720,6 +729,7 @@ function M.clear_caches(bufnr)
 end
 
 function M.cache_stats()
+    -- resolver cache hit/miss 를 테스트나 디버깅에서 확인할 수 있게 노출한다.
     local entries = 0
     for _ in pairs(M.cache.resolved_paths) do
         entries = entries + 1
@@ -732,7 +742,7 @@ function M.cache_stats()
 end
 
 local function collect_headings(bufnr)
-    -- NOTE: preview/outline 용 heading 만 수집한다.
+    -- preview/outline 용 heading 만 수집한다.
     -- frontmatter 와 fenced code 안의 # 문자는 문서 구조에서 제외한다.
     bufnr = bufnr or 0
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
@@ -775,6 +785,7 @@ local function get_snacks()
 end
 
 function M.open_heading_outline()
+    -- 현재 markdown 문서의 heading 을 Snacks picker 로 보여주고 선택 위치로 이동한다.
     local headings = collect_headings(0)
     if #headings == 0 then
         vim.notify("현재 문서에 Markdown heading이 없습니다.", vim.log.levels.INFO)
@@ -798,7 +809,7 @@ function M.open_heading_outline()
             title = "Markdown Headings",
             items = items,
             format = "text",
-            -- NOTE: 빈 query 는 preview 와 같은 문서 순서를 유지한다.
+            -- 빈 query 는 preview 와 같은 문서 순서를 유지한다.
             -- fuzzy match 결과가 있을 때만 표시 범위를 좁힌다.
             matcher = { sort = false },
             sort = { fields = { "sort" } },
@@ -835,6 +846,7 @@ local function encode_url_path(path)
 end
 
 function M.open_astro_preview()
+    -- tonys-blog 구조의 markdown 글을 Astro route URL 로 열어 브라우저 preview 한다.
     local ctx = M.get_context(0)
     if not ctx or not ctx.root or not ctx.file or not ctx.kind:match("astro") and not ctx.kind:match("tonys%-blog") then
         vim.notify("Astro blog context가 아닙니다.", vim.log.levels.WARN)
@@ -858,6 +870,7 @@ function M.open_astro_preview()
 end
 
 function M.setup()
+    -- markdown asset workflow 명령과 buffer-local keymap 을 FileType 시점에 등록한다.
     for _, command in ipairs({
         { "MarkdownPasteImage", M.paste_image },
         { "MarkdownOpenAsset", M.open_link_under_cursor },

@@ -29,6 +29,8 @@ vim.filetype.add({
 })
 
 return {
+    -- Helm chart/template 파일에 helm_ls LSP 를 붙이기 위해 등록한다.
+    -- values 파일은 yaml.helm-values 로 분리해 일반 YAML 과 설정을 나눈다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
@@ -39,6 +41,7 @@ return {
             }
         end,
     },
+    -- Helm template parser 를 treesitter 공통 설치 목록에 추가한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -46,6 +49,7 @@ return {
             vim.list_extend(opts.ensure_installed, { "helm" })
         end,
     },
+    -- Helm template/values formatting 은 prettier 를 conform 에 연결한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)

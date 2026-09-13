@@ -10,11 +10,11 @@ local KUBERNETES_MANIFEST_FILE_MATCHES = {
 }
 
 local PRIVATE_KUBERNETES_CRD_SCHEMAS = {
-    -- NOTE: CRDs-catalog 에 없는 private/operator CRD schema 는 여기에 둔다.
+    -- CRDs-catalog 에 없는 private/operator CRD schema 는 여기에 둔다.
 }
 
 local function build_yaml_schemas()
-    -- NOTE: yamlls built-in schemaStore fetch 는 끄고 SchemaStore.nvim 을 쓴다.
+    -- yamlls built-in schemaStore fetch 는 끄고 SchemaStore.nvim 을 쓴다.
     -- Kubernetes repo 관례 경로는 local override 로 hover/validate 를 안정화.
     local schemas = require("schemastore").yaml.schemas()
     schemas.kubernetes = KUBERNETES_MANIFEST_FILE_MATCHES
@@ -27,6 +27,8 @@ local function build_yaml_schemas()
 end
 
 return {
+    -- YAML LSP 를 공통 lspconfig 서버 목록에 등록한다.
+    -- SchemaStore, Kubernetes CRD catalog, repo 경로 override 를 함께 적용한다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
@@ -50,6 +52,7 @@ return {
             }
         end,
     },
+    -- YAML parser 를 treesitter 공통 설치 목록에 추가한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -57,6 +60,7 @@ return {
             vim.list_extend(opts.ensure_installed, { "yaml" })
         end,
     },
+    -- YAML formatter 는 prettier 후 yamlfmt 로 conform 에 연결한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)

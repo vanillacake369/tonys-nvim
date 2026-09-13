@@ -1,4 +1,6 @@
 return {
+    -- keymap hint popup 을 제공해 leader 기반 명령을 탐색하기 쉽게 만든다.
+    -- config.keymaps 의 which-key spec 을 UI 표현으로만 연결한다.
     "folke/which-key.nvim",
     event = "VeryLazy",
     opts = function()

@@ -16,11 +16,13 @@ local function find_nix_plugin()
     return nil
 end
 
--- COMPAT: tonys-nix bundles parser .so files into rtp with
--- nvim-treesitter.withAllGrammars. Non-Nix hosts use lazy ensure_installed.
+-- tonys-nix 는 nvim-treesitter.withAllGrammars 로 parser .so 파일을 rtp 에 묶는다.
+-- Nix 가 아닌 host 에서는 lazy 의 ensure_installed 흐름을 사용한다.
 local nix_dir = find_nix_plugin()
 
 return {
+    -- nvim-treesitter 로 syntax highlight, indent, incremental selection 을 제공한다.
+    -- Nix 환경에서는 bundled parser 를 쓰고 non-Nix 에서는 lazy build 로 갱신한다.
     "nvim-treesitter/nvim-treesitter",
     dir = nix_dir,
     build = not nix_dir and ":TSUpdate" or nil,
@@ -48,7 +50,7 @@ return {
     config = function(_, opts)
         local ok, configs = pcall(require, "nvim-treesitter.configs")
 
-        -- WARN: 모듈 로드 실패 시 내장 treesitter 만 켜고 조기 종료.
+        -- 모듈 로드 실패 시 내장 treesitter 만 켜고 조기 종료한다.
         if not ok then
             vim.api.nvim_create_autocmd("FileType", {
                 callback = function()
@@ -67,9 +69,8 @@ return {
 
         configs.setup(opts)
 
-        -- WARN: fail early when declared parsers are missing from rtp. Missing
-        -- parsers otherwise surface later as empty neotest trees or broken
-        -- render-markdown behavior.
+        -- 선언한 parser 가 rtp 에 없으면 즉시 실패하게 한다.
+        -- 그렇지 않으면 빈 neotest tree 나 깨진 render-markdown 동작으로 늦게 드러난다.
         vim.schedule(function()
             local missing = {}
             for _, parser_lang in ipairs(declared_parsers) do
