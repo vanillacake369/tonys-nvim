@@ -2,7 +2,7 @@ local H = require("tests.helpers")
 local assert_eq = H.assert_eq
 local runner = H.gradle_runner()
 
--- NOTE: project test 는 Gradle probe 를 사용할 수 없을 때의 fallback mapping 을
+-- project spec 은 Gradle 탐지를 사용할 수 없을 때의 fallback mapping 을
 -- 검증한다. Gradle 을 실행하지 않고 headless Neovim 에서 nested module 동작을
 -- 결정적으로 유지한다.
 
@@ -41,6 +41,45 @@ assert_eq(commands, {
         "--console=plain",
     },
 }, "nested Gradle test files fallback to the nearest module task")
+
+vim.fn.delete(root, "rf")
+
+-- GIVEN
+local alternate_target = _G.__test_alternate._test.alternate_target
+root = H.temp_root()
+
+-- WHEN / THEN
+assert_eq(
+    alternate_target(root .. "/src/main/java/com/acme/Foo.java"),
+    root .. "/src/test/java/com/acme/FooTest.java",
+    "Java source files create matching test files"
+)
+assert_eq(
+    alternate_target(root .. "/lua/plugins/core/paste-img.lua"),
+    root .. "/tests/paste_img_spec.lua",
+    "Lua source files create root spec files with module-safe names"
+)
+assert_eq(
+    alternate_target(root .. "/src/test/java/com/acme/FooTest.java"),
+    root .. "/src/main/java/com/acme/Foo.java",
+    "Java test files jump back to source files"
+)
+H.write(root .. "/lua/plugins/core/debugger.lua", { "return {}" })
+assert_eq(
+    alternate_target(root .. "/tests/debugger_spec.lua"),
+    root .. "/lua/plugins/core/debugger.lua",
+    "Lua spec files jump back to the matching source file"
+)
+assert_eq(
+    alternate_target(root .. "/service.go"),
+    root .. "/service_test.go",
+    "Go source files create sibling test files"
+)
+assert_eq(
+    alternate_target(root .. "/tests/test_service.py"),
+    root .. "/service.py",
+    "Python test files jump back to source files"
+)
 
 vim.fn.delete(root, "rf")
 

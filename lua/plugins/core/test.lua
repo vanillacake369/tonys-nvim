@@ -1048,7 +1048,7 @@ local function derive_class_name(filename)
 end
 
 local function go_package(filename)
-    -- NOTE: 같은 디렉터리의 기존 Go package 선언이 있으면 그대로 재사용한다.
+    -- 같은 디렉터리의 기존 Go package 선언이 있으면 그대로 재사용한다.
     local dir = vim.fn.fnamemodify(filename, ":h")
     for _, sibling in ipairs(vim.fn.glob(dir .. "/*.go", false, true)) do
         if sibling ~= filename then
@@ -1061,6 +1061,10 @@ local function go_package(filename)
         end
     end
     return vim.fn.fnamemodify(dir, ":t")
+end
+
+local function lua_module_name(filename)
+    return vim.fn.fnamemodify(filename, ":t:r"):gsub("%-", "_")
 end
 
 local templates = {
@@ -1136,7 +1140,92 @@ local templates = {
             "",
         }
     end,
+    lua = function(filename)
+        local name = lua_module_name(filename)
+        return {
+            'local H = require("tests.helpers")',
+            "local assert_eq = H.assert_eq",
+            "",
+            "-- GIVEN",
+            ('local %s = require("TODO")'):format(name),
+            "",
+            "-- WHEN",
+            "local actual = nil",
+            "",
+            "-- THEN",
+            'assert_eq(actual, nil, "테스트코드명")',
+            "",
+        }
+    end,
 }
+
+local function lua_source_for_spec(filename)
+    local spec = filename:match("/tests/(.+)_spec%.lua$")
+    if not spec then
+        return nil
+    end
+
+    local root = filename:match("^(.*)/tests/.+_spec%.lua$")
+    local candidates = vim.fn.glob(root .. "/lua/**/" .. spec .. ".lua", false, true)
+    vim.list_extend(candidates, vim.fn.glob(root .. "/lua/**/" .. spec:gsub("_", "-") .. ".lua", false, true))
+    table.sort(candidates)
+    return candidates[1]
+end
+
+local function alternate_target(filename)
+    local target = filename:gsub("/lua/.*/([^/]+)%.lua$", function(name)
+        return "/tests/" .. name:gsub("%-", "_") .. "_spec.lua"
+    end)
+    if target ~= filename then
+        return target
+    end
+
+    target = lua_source_for_spec(filename)
+    if target then
+        return target
+    end
+
+    target = filename:gsub("/src/main/java/(.*)%.java$", "/src/test/java/%1Test.java")
+    if target ~= filename then
+        return target
+    end
+
+    target = filename:gsub("/src/test/java/(.*)Test%.java$", "/src/main/java/%1.java")
+    if target ~= filename then
+        return target
+    end
+
+    target = filename:gsub("/src/main/kotlin/(.*)%.kt$", "/src/test/kotlin/%1Test.kt")
+    if target ~= filename then
+        return target
+    end
+
+    target = filename:gsub("/src/test/kotlin/(.*)Test%.kt$", "/src/main/kotlin/%1.kt")
+    if target ~= filename then
+        return target
+    end
+
+    if filename:match("_test%.go$") then
+        return filename:gsub("_test%.go$", ".go")
+    end
+
+    target = filename:gsub("%.go$", "_test.go")
+    if target ~= filename then
+        return target
+    end
+
+    target = filename:gsub("/tests/test_([^/]+)%.py$", "/%1.py")
+    if target ~= filename then
+        return target
+    end
+
+    target = filename:gsub("/([^/]+)%.py$", "/tests/test_%1.py")
+    if target ~= filename then
+        return target
+    end
+
+    return nil
+end
 
 function alternate_templates.write(filename)
     local ext = filename:match("%.([^.]+)$")
@@ -1144,16 +1233,16 @@ function alternate_templates.write(filename)
     if not maker then
         return
     end
-    -- NOTE: other.nvim 은 새 파일의 상위 디렉터리를 만들지 않으므로 직접 보장한다.
+    -- other.nvim 은 새 파일의 상위 디렉터리를 만들지 않으므로 직접 보장한다.
     vim.fn.mkdir(vim.fn.fnamemodify(filename, ":h"), "p")
-    -- NOTE: onOpenFile 은 :edit 보다 먼저 실행되므로 buffer 로드 이후로 지연한다.
+    -- onOpenFile 은 :edit 보다 먼저 실행되므로 buffer 로드 이후로 지연한다.
     vim.schedule(function()
         local bufnr = vim.fn.bufnr(filename)
         if bufnr == -1 then
             return
         end
         if vim.api.nvim_buf_line_count(bufnr) > 1 then
-            return -- NOTE: 이미 내용이 있는 buffer 는 건드리지 않는다.
+            return -- 이미 내용이 있는 buffer 는 건드리지 않는다.
         end
         local first = vim.api.nvim_buf_get_lines(bufnr, 0, 1, false)[1]
         if first and first ~= "" then
@@ -1163,7 +1252,15 @@ function alternate_templates.write(filename)
     end)
 end
 
--- NOTE: Rust project 는 unit test 를 대상 코드 옆에 두는 경우가 많으므로
+function alternate_templates.open(filename)
+    local exists = vim.fn.filereadable(filename) == 1
+    if not exists then
+        alternate_templates.write(filename)
+    end
+    vim.cmd.edit(vim.fn.fnameescape(filename))
+end
+
+-- Rust project 는 unit test 를 대상 코드 옆에 두는 경우가 많으므로
 -- alternate 는 inline `#[cfg(test)] mod tests` 로 이동한다.
 
 local alternate_rust = {}
@@ -1195,7 +1292,7 @@ function alternate_rust.jump_to_test_block()
             return
         end
     end
-    -- NOTE: tests module 이 없으면 파일 끝에 skeleton 을 추가하고 내부로 이동한다.
+    -- tests module 이 없으면 파일 끝에 skeleton 을 추가하고 내부로 이동한다.
     local line_count = vim.api.nvim_buf_line_count(bufnr)
     local skeleton = {
         "",
@@ -1216,63 +1313,83 @@ function alternate_rust.jump_to_test_block()
     vim.api.nvim_win_set_cursor(0, { line_count + 3, 0 })
 end
 
--- NOTE: keymap 과 debugger 호출이 같은 JVM/Rust/Neotest 동작으로 수렴하도록
+-- keymap 과 debugger 호출이 같은 JVM/Rust/Neotest 동작으로 수렴하도록
 -- public entry point 는 얇게 유지한다.
 
 function M.pick_java_tests()
+    -- Java 전용 Gradle test picker 를 열어 class/method 단위 실행을 고른다.
     jvm_gradle.pick_java_tests()
 end
 
 function M.pick_jvm_tests()
+    -- Java/Kotlin test picker 를 열어 JVM 계열 테스트를 같은 UI 로 고른다.
     jvm_gradle.pick_jvm_tests()
 end
 
 function M.stop()
+    -- 실행 중인 Neotest/Gradle 작업을 사용자 명령에서 중단한다.
     jvm_gradle.stop()
 end
 
 function M.run_nearest_verbose()
+    -- 커서 주변 JVM test 를 자세한 로그 옵션으로 실행한다.
     jvm_gradle.run_nearest_verbose()
 end
 
 function M.run_nearest()
+    -- 커서 주변 JVM test 를 기본 옵션으로 실행한다.
     jvm_gradle.run_nearest()
 end
 
 function M.run_file()
+    -- 현재 JVM test 파일 전체를 실행한다.
     jvm_gradle.run_file()
 end
 
 function M.watch_file()
+    -- 현재 JVM test 파일을 watch mode 로 반복 실행한다.
     jvm_gradle.watch_file()
 end
 
 function M.debug_test()
+    -- 현재 JVM test 를 Gradle/Neotest context 에 맞춰 DAP debug 로 실행한다.
     jvm_gradle.debug_test()
 end
 
 function M.jump_alternate()
+    -- source/test alternate 이동을 Rust inline tests 와 일반 file pair 로 나눠 처리한다.
     if vim.bo.filetype == "rust" then
         alternate_rust.jump_to_test_block()
         return
     end
+
+    local target = alternate_target(vim.fn.expand("%:p"))
+    if target then
+        alternate_templates.open(target)
+        return
+    end
+
     vim.cmd("Other")
 end
 
 function M.write_alternate_template(filename)
+    -- other.nvim 이 새 test 파일을 만들 때 언어별 skeleton 을 채운다.
     alternate_templates.write(filename)
 end
 
--- NOTE: load policy, adapter, keymap-facing test API 가 하나의 vertical slice 로
+-- load policy, adapter, keymap-facing test API 가 하나의 세로 기능 묶음으로
 -- 남도록 Neotest plugin spec 도 이 파일에 둔다.
 
 M._test = {
     gradle = jvm_gradle._test,
+    alternate_target = alternate_target,
 }
 
 _G.__test_alternate = M
 
 return {
+    -- neotest 를 Java/Kotlin/Go/Python/Rust 공통 test runner UI 로 사용한다.
+    -- 언어별 adapter 와 keymap-facing helper 를 이 파일의 vertical slice 로 묶는다.
     {
         "nvim-neotest/neotest",
         dependencies = {
@@ -1280,12 +1397,12 @@ return {
             "nvim-lua/plenary.nvim",
             "antoinemadec/FixCursorHold.nvim",
             "nvim-treesitter/nvim-treesitter",
-            -- COMPAT: neotest-java update 는 아래 Path:append patch 와 tonys-nix 의
+            -- neotest-java update 는 아래 Path:append patch 와 tonys-nix 의
             -- JUnit JAR pin 을 함께 확인해야 한다.
             "rcasia/neotest-java",
             "fredrikaverpil/neotest-golang",
             "nvim-neotest/neotest-python",
-            -- NOTE: non-Rust buffer 가 먼저 열려도 Rust adapter 를 사용할 수 있도록
+            -- non-Rust buffer 가 먼저 열려도 Rust adapter 를 사용할 수 있도록
             -- neotest setup 전에 rustaceanvim 을 로드한다.
             "mrcjkb/rustaceanvim",
         },
@@ -1294,12 +1411,12 @@ return {
             return require("config.keymaps").bind("test")
         end,
         config = function()
-            -- HACK: neotest-java v0.37.3 의 Path:append 는 `other` 를 string 으로
+            -- neotest-java v0.37.3 의 Path:append 는 `other` 를 string 으로
             -- 가정하지만 Gradle build dir resolution 은 다른 Path 를 넘길 수 있다.
             -- Spring test discovery 가 crash 나지 않도록 table arg 를 tostring 으로
             -- 강제 변환한다.
             --
-            -- COMPAT: 2026-05-31 neotest-java HEAD 동작에 맞춘 patch 다.
+            -- 2026-05-31 neotest-java HEAD 동작에 맞춘 patch 다.
             -- `:Lazy update neotest-java` 이후에는 다음을 실행한다.
             --   git -C ~/.local/share/nvim/lazy/neotest-java log --oneline \
             --       -- lua/neotest-java/model/path.lua \
@@ -1326,7 +1443,7 @@ return {
                     table.insert(adapters, factory and factory(mod) or mod)
                 end
             end
-            -- COMPAT: JAR version 은 Nix 로 pin 하고 tonys-nix 에서 review 하므로
+            -- JAR version 은 Nix 로 pin 하고 tonys-nix 에서 review 하므로
             -- neotest-java 의 JUnit update popup 은 숨긴다.
             add("neotest-java", function(mod)
                 return mod({ disable_update_notifications = true })
@@ -1337,7 +1454,7 @@ return {
             add("neotest-python", function(mod)
                 return mod({ runner = "pytest" })
             end)
-            -- NOTE: rustaceanvim 의 neotest module 은 factory 가 아니라 adapter table 이다.
+            -- rustaceanvim 의 neotest module 은 factory 가 아니라 adapter table 이다.
             add("rustaceanvim.neotest")
 
             require("neotest").setup({
