@@ -1,6 +1,7 @@
 -- GIVEN
 local specs = {
     "tests/paste_img_fallback_spec.lua",
+    "tests/debugger_spec.lua",
     "tests/jvm_gradle_command_spec.lua",
     "tests/jvm_gradle_project_spec.lua",
     "tests/jvm_gradle_discovery_spec.lua",
