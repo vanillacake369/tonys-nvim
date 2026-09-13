@@ -5,6 +5,7 @@ local specs = {
     "tests/jvm_gradle_command_spec.lua",
     "tests/jvm_gradle_project_spec.lua",
     "tests/jvm_gradle_discovery_spec.lua",
+    "tests/jvm_gradle_picker_preview_spec.lua",
     "tests/jvm_gradle_cursor_spec.lua",
 }
 

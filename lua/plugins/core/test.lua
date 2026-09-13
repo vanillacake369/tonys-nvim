@@ -1,20 +1,27 @@
--- NOTE: Neotest 가 테스트별 gutter sign, 진단, summary, DAP 실행을 소유한다.
+-- Neotest 가 테스트별 gutter 표시, 진단, 요약, DAP 실행을 소유한다.
 -- Java, Go, Python, Rust adapter 를 함께 등록해서 어떤 언어 버퍼가 먼저
 -- 로드되어도 테스트 keymap 동작이 달라지지 않게 한다.
 --
--- COMPAT: Nix host 에서는 tonys-nix 가 home.file symlink 로 제공하는 JUnit
+-- Nix host 에서는 tonys-nix 가 home.file symlink 로 제공하는 JUnit
 -- Platform Console Standalone JAR 를 neotest-java 가 사용한다.
 
 local M = {}
 
--- NOTE: 테스트 terminal 은 public test keymap, Gradle runner, DAP handoff,
--- alternate-file helper 가 하나의 vertical slice 로 수렴하도록 이 파일 안에 둔다.
--- 다른 호출자가 안정적인 module 경계를 요구하기 전까지는 plain function 으로 둔다.
+-- 테스트 terminal 은 public test keymap, Gradle runner, DAP handoff,
+-- alternate-file helper 가 하나의 세로 기능 묶음으로 수렴하도록 이 파일 안에 둔다.
+-- 다른 호출자가 안정적인 module 경계를 요구하기 전까지는 평범한 function 으로 둔다.
 
 local terminal = {}
 
 local terminals = {}
 local watch_terminal
+local TEST_TERMINAL_HEIGHT_RATIO = 0.45
+local TEST_PICKER_PREVIEW_CONTEXT_BEFORE = 3
+local TEST_PICKER_PREVIEW_CONTEXT_AFTER = 3
+local TEST_PICKER_PREVIEW_MAX_LINES = 80
+local JVM_DEBUG_ATTACH_PORT = 5005
+local JVM_DEBUG_ATTACH_TIMEOUT_MS = 30000
+local JVM_DEBUG_ATTACH_POLL_MS = 250
 
 local function bottom(buf)
     vim.schedule(function()
@@ -103,7 +110,7 @@ function terminal.run(cmd, cwd, opts)
                 interactive = false,
                 win = {
                     position = "bottom",
-                    height = 0.45,
+                    height = TEST_TERMINAL_HEIGHT_RATIO,
                 },
             }),
             opts
@@ -126,9 +133,9 @@ function terminal.toggle_watch(cmd, cwd, opts)
     watch_terminal = terminal.run(cmd, cwd, opts)
 end
 
--- NOTE: JVM Gradle runner 는 project discovery, test discovery, command argv
--- 구성, terminal 실행, watch mode, debug attach 를 소유한다. 테스트는 별도 DSL
--- 대신 같은 risk 축으로 이 section 들을 검증한다.
+-- JVM Gradle runner 는 project discovery, test discovery, command argv 구성,
+-- terminal 실행, watch mode, debug attach 를 소유한다.
+-- 테스트는 별도 DSL 대신 같은 위험 축으로 이 section 들을 검증한다.
 
 local jvm_gradle = {}
 
@@ -471,6 +478,7 @@ local function item_from_neotest_node(metadata, node)
         text = string.format("%s  %s.%s  %s:%d", meta.task, fqcn, pos.name, meta.display_path, line),
         file = pos.path,
         line = line,
+        pos = { line, 0 },
         fqcn = fqcn,
         method = pos.name,
         filter = fqcn .. "." .. pos.name,
@@ -505,6 +513,7 @@ local function kotlin_test_item(file, line_number, class_name, method, meta)
         text = string.format("%s  %s.%s  %s:%d", meta.task, fqcn, method, meta.display_path, line_number),
         file = file,
         line = line_number,
+        pos = { line_number, 0 },
         fqcn = fqcn,
         method = method,
         filter = fqcn .. "." .. method,
@@ -559,6 +568,87 @@ local function discover_jvm_tests(root, files, metadata)
         return left.file < right.file
     end)
     return items
+end
+
+local function filetype_from_test_file(file)
+    return file:match("%.kt$") and "kotlin" or "java"
+end
+
+local function count_braces(line)
+    local opens = select(2, line:gsub("{", ""))
+    local closes = select(2, line:gsub("}", ""))
+    return opens, closes
+end
+
+local function test_preview_start(lines, line)
+    local start = line
+    for current = line - 1, 1, -1 do
+        local text = lines[current] or ""
+        if text:match("^%s*@") or (current == start - 1 and text:match("^%s*$")) then
+            start = current
+        else
+            break
+        end
+    end
+    return start
+end
+
+local function test_preview_end(lines, start, fallback_end)
+    local depth = 0
+    local saw_body = false
+    for current = start, #lines do
+        local opens, closes = count_braces(lines[current] or "")
+        depth = depth + opens - closes
+        saw_body = saw_body or opens > 0
+        if saw_body and depth <= 0 then
+            return current
+        end
+        if not saw_body and current >= fallback_end then
+            return fallback_end
+        end
+    end
+    return math.min(fallback_end, #lines)
+end
+
+local function next_test_line(item, methods)
+    local next_line
+    for _, candidate in ipairs(methods) do
+        if candidate.file == item.file and candidate.line > item.line then
+            next_line = not next_line and candidate.line or math.min(next_line, candidate.line)
+        end
+    end
+    return next_line
+end
+
+local function test_preview_text(item, methods)
+    local ok, lines = pcall(vim.fn.readfile, item.file)
+    if not ok or #lines == 0 then
+        return nil
+    end
+
+    local next_line = next_test_line(item, methods)
+    local fallback_end = math.min((next_line and next_line - 1 or item.line + TEST_PICKER_PREVIEW_MAX_LINES), #lines)
+    local body_start = test_preview_start(lines, item.line)
+    local body_finish = test_preview_end(lines, body_start, fallback_end)
+    local start = math.max(1, body_start - TEST_PICKER_PREVIEW_CONTEXT_BEFORE)
+    local finish = math.min(fallback_end, body_finish + TEST_PICKER_PREVIEW_CONTEXT_AFTER)
+    local header = ("// === %s  %s  %s:%d ==="):format(item.task, item.filter, item.file, item.line)
+    local footer = ("// === end %s ==="):format(item.filter)
+    local preview = { header }
+    vim.list_extend(preview, vim.list_slice(lines, start, finish))
+    table.insert(preview, footer)
+    return table.concat(preview, "\n")
+end
+
+local function attach_test_previews(methods)
+    for _, item in ipairs(methods) do
+        item.preview = {
+            text = test_preview_text(item, methods) or item.text,
+            ft = filetype_from_test_file(item.file),
+            loc = false,
+        }
+    end
+    return methods
 end
 
 local function kotlin_test_method_at_line(line, row)
@@ -729,16 +819,46 @@ local function run_java_gradle_test(opts)
     terminal.run(cmd, root, { init_script = init_script, notify_result = true })
 end
 
+local function is_tcp_port_listening(port)
+    if vim.fn.executable("lsof") ~= 1 then
+        return false
+    end
+
+    local output = vim.fn.systemlist({ "lsof", "-nP", "-iTCP:" .. port, "-sTCP:LISTEN", "-Fp" })
+    return vim.v.shell_error == 0 and not vim.tbl_isempty(output)
+end
+
 local function attach_debugger()
-    vim.defer_fn(function()
-        require("dap").run({
-            type = "java",
-            request = "attach",
-            name = "Debug Gradle Test",
-            hostName = "127.0.0.1",
-            port = 5005,
-        })
-    end, 800)
+    local host = "127.0.0.1"
+    local started_at = vim.uv.now()
+
+    local function poll()
+        if is_tcp_port_listening(JVM_DEBUG_ATTACH_PORT) then
+            require("dap").run({
+                type = "java",
+                request = "attach",
+                name = "Debug Gradle Test",
+                hostName = host,
+                port = JVM_DEBUG_ATTACH_PORT,
+            })
+            return
+        end
+
+        if vim.uv.now() - started_at >= JVM_DEBUG_ATTACH_TIMEOUT_MS then
+            vim.notify(
+                ("Java debug port %d did not open within %ds"):format(
+                    JVM_DEBUG_ATTACH_PORT,
+                    JVM_DEBUG_ATTACH_TIMEOUT_MS / 1000
+                ),
+                vim.log.levels.ERROR
+            )
+            return
+        end
+
+        vim.defer_fn(poll, JVM_DEBUG_ATTACH_POLL_MS)
+    end
+
+    poll()
 end
 
 local function run_java_gradle_debug_test(opts)
@@ -787,8 +907,9 @@ local function open_jvm_test_picker(root, methods)
 
     Snacks.picker({
         title = "JVM Tests",
-        items = methods,
+        items = attach_test_previews(methods),
         format = "text",
+        preview = "preview",
         matcher = { sort = false },
         confirm = function(picker, item)
             local selected = picker:selected({ fallback = true })
@@ -851,6 +972,16 @@ function jvm_gradle.debug_test()
         return
     end
 
+    if vim.bo.filetype == "java" and require("plugins.core.debugger").has_java_test() then
+        local ok, err = pcall(function()
+            require("jdtls").test_nearest_method()
+        end)
+        if ok then
+            return
+        end
+        vim.notify("JDT LS test debug failed; falling back to Gradle attach: " .. tostring(err), vim.log.levels.WARN)
+    end
+
     run_java_gradle_debug_test({ nearest = true })
 end
 
@@ -895,13 +1026,14 @@ jvm_gradle._test = {
     build_gradle_debug_commands = build_gradle_debug_commands,
     combined_command = combined_command,
     clear_gradle_project_cache = clear_gradle_project_cache,
+    attach_test_previews = attach_test_previews,
     discover_kotlin_tests = discover_kotlin_tests,
 }
 
 setup_cache_invalidation()
 
--- NOTE: Alternate-file template 은 재사용 project generator 가 아니라 같은 test
--- workflow keymap 표면에 속하므로 이 파일 안에 둔다.
+-- Alternate-file template 은 재사용 project generator 가 아니라 같은 test workflow
+-- keymap 표면에 속하므로 이 파일 안에 둔다.
 
 local alternate_templates = {}
 
