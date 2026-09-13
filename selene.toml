@@ -1,4 +1,11 @@
-# Selene configuration for Neovim
+# Neovim 설정용 Selene 구성이다.
 # https://kampfkarren.github.io/selene/
 
 std = "vim"
+
+[rules]
+# lazy.nvim plugin spec 과 keymap registry 는 배열 항목과 named option 을 함께 쓴다.
+mixed_table = "allow"
+
+# 테스트 hook 과 Snacks debug helper 는 Neovim runtime 전역 surface 를 통해 연결한다.
+global_usage = "allow"
