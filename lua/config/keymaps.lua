@@ -1,24 +1,32 @@
--- Leader keys (must be set before any keymap or plugin)
+-- leader key 는 모든 keymap/plugin 보다 먼저 설정해야 한다.
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- NOTE: C-d, C-u, C-f, C-b 스크롤 후 커서를 화면 중앙에 둔다.
+-- C-d, C-u, C-f, C-b 스크롤 후 커서를 화면 중앙에 둔다.
 vim.keymap.set("n", "<C-d>", "<C-d>zz", { desc = "Scroll Half Page Down and Center" })
 vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Scroll Half Page Up and Center" })
 vim.keymap.set("n", "<C-f>", "<C-f>zz", { desc = "Scroll Full Page Down and Center" })
 vim.keymap.set("n", "<C-b>", "<C-b>zz", { desc = "Scroll Full Page Up and Center" })
 
--- NOTE: plugin-native keymaps stay with their plugin specs.
--- Examples: completion, Copilot suggestions, and UI toggles.
+-- completion, Copilot suggestion, UI toggle 처럼 plugin-native keymap 은
+-- 해당 plugin spec 안에 둔다.
 
 local M = {}
+
+local HOVER_POPUP_MIN_WIDTH = 96
+local HOVER_POPUP_WIDTH_RATIO = 0.82
+local HOVER_POPUP_MAX_WIDTH = 160
+local HOVER_POPUP_MIN_HEIGHT = 24
+local HOVER_POPUP_HEIGHT_RATIO = 0.72
+local HOVER_POPUP_MAX_HEIGHT = 48
+local HOVER_POPUP_BACKDROP = 60
 
 local function get_buf_path()
     return vim.fn.expand("%:p:h")
 end
 
 M.definitions = {
-    -- LSP Navigation (no prefix, applied on LspAttach)
+    -- LSP 이동 keymap 은 prefix 없이 LspAttach 시점에 붙인다.
     lsp = {
         name = "+LSP Go-to",
         prefix = nil,
@@ -76,15 +84,16 @@ M.definitions = {
                         Snacks.win({
                             text = table.concat(contents, "\n"),
                             ft = "markdown",
-                            -- NOTE: compact hover 에 쓸 대체 크기.
-                            -- width = math.max(80,
-                            --     math.min(math.floor(vim.o.columns * 0.75), 132))
-                            -- height = math.max(20,
-                            --     math.min(math.floor(vim.o.lines * 0.60), 40))
-                            width = math.max(96, math.min(math.floor(vim.o.columns * 0.82), 160)),
-                            height = math.max(24, math.min(math.floor(vim.o.lines * 0.72), 48)),
+                            width = math.max(
+                                HOVER_POPUP_MIN_WIDTH,
+                                math.min(math.floor(vim.o.columns * HOVER_POPUP_WIDTH_RATIO), HOVER_POPUP_MAX_WIDTH)
+                            ),
+                            height = math.max(
+                                HOVER_POPUP_MIN_HEIGHT,
+                                math.min(math.floor(vim.o.lines * HOVER_POPUP_HEIGHT_RATIO), HOVER_POPUP_MAX_HEIGHT)
+                            ),
                             border = "rounded",
-                            backdrop = 60,
+                            backdrop = HOVER_POPUP_BACKDROP,
                             enter = true,
                             wo = {
                                 wrap = true,
@@ -167,7 +176,7 @@ M.definitions = {
         },
     },
 
-    -- Code operations (applied on LspAttach)
+    -- 코드 작업 keymap 은 LspAttach 시점에 붙인다.
     code = {
         name = "+Code",
         prefix = "<leader>c",
@@ -182,7 +191,7 @@ M.definitions = {
         {
             "<leader>cf",
             function()
-                -- NOTE: visual 종료 후 갱신된 '< / '> 마크를 range 로 전달.
+                -- visual 종료 후 갱신된 '< / '> 마크를 range 로 전달.
                 require("conform").format({
                     async = true,
                     lsp_format = "never",
@@ -197,7 +206,7 @@ M.definitions = {
         },
     },
 
-    -- Git (분리된 독립 그룹)
+    -- Git keymap 은 독립 group 으로 분리한다.
     git = {
         name = "+Git",
         prefix = "<leader>g",
@@ -291,7 +300,7 @@ M.definitions = {
         },
     },
 
-    -- Debug (승격: <leader>cd* → <leader>d*)
+    -- Debug keymap 은 <leader>cd* 에서 <leader>d* 로 승격한다.
     debug = {
         name = "+Debug",
         prefix = "<leader>d",
@@ -310,19 +319,11 @@ M.definitions = {
             desc = "Toggle Breakpoint",
         },
         {
-            "<leader>dB",
-            function()
-                local condition = vim.fn.input("Breakpoint condition: ")
-                require("dap").set_breakpoint(condition ~= "" and condition or nil)
-            end,
-            desc = "Conditional Breakpoint",
-        },
-        {
             "<leader>dt",
             function()
-                require("dap").terminate()
+                require("plugins.core.debugger").debug_stop()
             end,
-            desc = "Terminate",
+            desc = "Stop/Detach",
         },
         {
             "<leader>di",
@@ -346,33 +347,34 @@ M.definitions = {
             desc = "Step Out",
         },
         {
-            "<leader>dl",
+            "<leader>de",
             function()
-                require("dap").run_last()
+                require("plugins.core.debugger").debug_eval()
             end,
-            desc = "Run Last",
+            desc = "Evaluate",
         },
         {
-            "<leader>dh",
+            "<leader>de",
             function()
-                require("dap.ui.widgets").hover()
+                require("plugins.core.debugger").debug_eval("visual")
             end,
-            desc = "Hover Value",
-            mode = { "n", "v" },
+            desc = "Evaluate Selection",
+            mode = "v",
         },
         {
-            "<leader>du",
+            "<leader>dw",
             function()
-                require("dapui").toggle()
+                require("plugins.core.debugger").debug_watch()
             end,
-            desc = "Toggle DAP UI",
+            desc = "Add Watch",
         },
         {
-            "<leader>drr",
+            "<leader>dw",
             function()
-                require("plugins.core.debugger").debug_run()
+                require("plugins.core.debugger").debug_watch("visual")
             end,
-            desc = "Run Target",
+            desc = "Add Watch Selection",
+            mode = "v",
         },
         {
             "<leader>drt",
@@ -388,13 +390,6 @@ M.definitions = {
             end,
             desc = "Attach",
         },
-        {
-            "<leader>drp",
-            function()
-                require("plugins.core.debugger").debug_pick()
-            end,
-            desc = "Pick Target",
-        },
     },
 
     debug_run = {
@@ -402,7 +397,7 @@ M.definitions = {
         prefix = "<leader>dr",
     },
 
-    -- Search & Replace (Spectre)
+    -- Spectre 기반 검색/치환
     search_replace = {
         name = "+Search & Replace",
         prefix = "<leader>s",
@@ -424,13 +419,13 @@ M.definitions = {
         },
     },
 
-    -- UI Toggles (actual toggles in finder.lua via Snacks.toggle)
+    -- 실제 UI toggle 은 finder.lua 에서 Snacks.toggle 로 등록한다.
     ui = {
         name = "+UI Toggles",
         prefix = "<leader>u",
     },
 
-    -- Diagnostics (이동: <leader>d* → <leader>x*, 중복 4개 제거)
+    -- Diagnostics keymap 은 <leader>d* 에서 <leader>x* 로 옮겨 debug 와 충돌을 피한다.
     diagnostics = {
         name = "+Diagnostics",
         prefix = "<leader>x",
@@ -438,7 +433,7 @@ M.definitions = {
         { "<leader>xb", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
     },
 
-    -- Buffer (단축: bdc→bd, bda→bD)
+    -- Buffer keymap 은 bdc→bd, bda→bD 로 줄인다.
     buffer = {
         name = "+Buffer",
         prefix = "<leader>b",
@@ -465,26 +460,38 @@ M.definitions = {
             end,
             desc = "Delete All Buffers",
         },
-        { "<leader>bp", "<Cmd>BufferLineTogglePin<CR>", desc = "Toggle Pin Buffer" },
         { "<leader>br", "<Cmd>BufferLineCloseRight<CR>", desc = "Close Buffers to Right" },
         { "<leader>bl", "<Cmd>BufferLineCloseLeft<CR>", desc = "Close Buffers to Left" },
         { "<leader>bu", "<Cmd>b #<CR>", desc = "Undo / Restore Closed Buffer" },
         {
             "<leader>bo",
             function()
-                Snacks.bufdelete.other()
+                local visible_bufs = {}
+                for _, win in ipairs(vim.api.nvim_list_wins()) do
+                    visible_bufs[vim.api.nvim_win_get_buf(win)] = true
+                end
+
+                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                    local name = vim.api.nvim_buf_get_name(buf)
+                    local is_file_buffer = vim.bo[buf].buflisted
+                        and vim.bo[buf].buftype == ""
+                        and not vim.bo[buf].modified
+                        and name ~= ""
+                        and not name:match("^%w[%w+.-]*://")
+                        and vim.fn.filereadable(name) == 1
+
+                    if vim.api.nvim_buf_is_loaded(buf) and is_file_buffer and not visible_bufs[buf] then
+                        Snacks.bufdelete({ buf = buf })
+                    end
+                end
             end,
-            desc = "Delete Other Buffers",
+            desc = "Delete Hidden File Buffers",
         },
         { "<S-h>", "<cmd>BufferLineCyclePrev<cr>", desc = "Previous Buffer" },
         { "<S-l>", "<cmd>BufferLineCycleNext<cr>", desc = "Next Buffer" },
-        { "[b", "<cmd>BufferLineCyclePrev<cr>", desc = "Previous Buffer" },
-        { "]b", "<cmd>BufferLineCycleNext<cr>", desc = "Next Buffer" },
-        { "[B", "<cmd>BufferLineMovePrev<cr>", desc = "Move Buffer Left" },
-        { "]B", "<cmd>BufferLineMoveNext<cr>", desc = "Move Buffer Right" },
     },
 
-    -- Find (Snacks picker)
+    -- Snacks picker 기반 검색
     find = {
         name = "+Find",
         prefix = "<leader>f",
@@ -567,7 +574,7 @@ M.definitions = {
         },
     },
 
-    -- Spring Initializr
+    -- Spring Initializr 프로젝트 생성
     springInitializr = {
         name = "+Spring Initializr",
         prefix = "<leader>S",
@@ -585,8 +592,8 @@ M.definitions = {
         },
     },
 
-    -- PERF: TodoTrouble respects .gitignore and skips generated directories.
-    -- Plain vimgrep over **/* stalled on Gradle and JS projects.
+    -- TodoTrouble 은 .gitignore 를 존중하고 생성 디렉터리를 건너뛴다.
+    -- **/* 대상 plain vimgrep 는 Gradle/JS project 에서 멈칫거렸다.
     todo = {
         name = "+Todo",
         prefix = "<leader>o",
@@ -616,7 +623,7 @@ M.definitions = {
         },
     },
 
-    -- Test (Neotest)
+    -- Neotest 기반 test 실행
     test = {
         name = "+Test",
         prefix = "<leader>t",
@@ -685,14 +692,14 @@ M.definitions = {
         },
     },
 
-    -- Align
+    -- 정렬
     align = {
         name = "+Align",
         prefix = "<leader>a",
         { "<leader>a", "<Plug>(EasyAlign)", desc = "Align Text", mode = { "n", "x" } },
     },
 
-    -- Marks (file bookmarks)
+    -- 파일 bookmark
     marks = {
         name = "+Marks",
         prefix = "<leader>h",
@@ -769,7 +776,7 @@ M.definitions = {
         },
     },
 
-    -- Terminal
+    -- Terminal 열기
     terminal = {
         {
             "<C-/>",
@@ -781,7 +788,7 @@ M.definitions = {
         },
     },
 
-    -- Jump
+    -- 화면/파일 이동
     jump = {
         name = "+Jump",
         prefix = "<leader>j",
@@ -795,7 +802,7 @@ M.definitions = {
         },
     },
 
-    -- Comment (plugin-managed hints)
+    -- 주석 toggle hint
     comment = {
         { "gc", desc = "Comment toggle linewise", mode = { "n", "v" } },
         { "gb", desc = "Comment toggle blockwise", mode = { "n", "v" } },
@@ -812,7 +819,7 @@ M.definitions = {
         },
     },
 
-    -- Window management
+    -- Window 관리
     window = {
         name = "+Window",
         prefix = "<leader>w",
@@ -892,7 +899,7 @@ M.definitions = {
         },
     },
 
-    -- Visual mode helpers
+    -- Visual mode 보조 기능
     move = {
         name = "+Move Lines",
         {
@@ -914,7 +921,7 @@ M.definitions = {
         { ">", ">gv", desc = "Indent Right (keep selection)", mode = "v" },
     },
 
-    -- Runner (Overseer)
+    -- Overseer 기반 runner
     runner = {
         name = "+Runner",
         prefix = "<leader>r",
@@ -950,7 +957,7 @@ M.definitions = {
         },
     },
 
-    -- Paste (img-clip.nvim)
+    -- img-clip 기반 붙여넣기
     paste = {
         {
             "<leader>p",
@@ -962,7 +969,7 @@ M.definitions = {
     },
 }
 
--- Convert a registry group to Lazy.nvim keys format.
+-- registry group 을 Lazy.nvim keys 형식으로 변환한다.
 local function get_keys(group_name, filter)
     local keys = {}
     local group = M.definitions[group_name]
@@ -970,9 +977,9 @@ local function get_keys(group_name, filter)
         return keys
     end
 
-    -- NOTE: plugin spec 이 group 일부 key 만 lazy-load 하도록 필터 지원.
+    -- plugin spec 이 group 일부 key 만 lazy-load 하도록 필터 지원.
     for _, item in ipairs(group) do
-        -- Skip metadata fields
+        -- metadata field 는 건너뛴다.
         if type(item) == "table" and item[1] and (not filter or filter(item)) then
             table.insert(keys, {
                 item[1],
@@ -985,7 +992,7 @@ local function get_keys(group_name, filter)
     return keys
 end
 
--- Public adapter for plugin specs and direct keymap attachment.
+-- plugin spec 과 직접 keymap attach 에서 함께 쓰는 public adapter 다.
 function M.bind(groups, opts)
     local keys = {}
     if type(groups) == "string" or (type(groups) == "table" and (groups.group or groups.filter)) then
@@ -1018,7 +1025,7 @@ function M.bind(groups, opts)
     return keys
 end
 
--- Generate Which-key spec automatically
+-- Which-key spec 을 자동 생성한다.
 function M.get_which_key_spec()
     local spec = {}
     for _, group in pairs(M.definitions) do
@@ -1032,7 +1039,7 @@ function M.get_which_key_spec()
     return spec
 end
 
--- Apply plugin-independent keymaps directly at load time
+-- plugin 과 무관한 keymap 은 load 시점에 바로 적용한다.
 M.bind({ "window", "move", "editor" }, {})
 
 return M
