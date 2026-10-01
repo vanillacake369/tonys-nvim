@@ -3,6 +3,39 @@ local LSP_DEBOUNCE_TEXT_CHANGES_MS = 150
 
 local M = {}
 
+function M.is_java_mapper_method_name(line, cursor_col)
+    local offset = 1
+    while true do
+        local start_col, end_col = line:find("[%a_$][%w_$]*%s*%(", offset)
+        if not start_col then
+            return false
+        end
+
+        local identifier_end = assert(line:find("%s*%(", start_col)) - 1
+        while identifier_end >= start_col and line:sub(identifier_end, identifier_end):match("%s") do
+            identifier_end = identifier_end - 1
+        end
+
+        if cursor_col >= start_col - 1 and cursor_col < identifier_end then
+            return true
+        end
+        offset = end_col + 1
+    end
+end
+
+local function should_use_mybatis_definition()
+    if vim.bo.filetype == "xml" then
+        return true
+    end
+    if vim.bo.filetype ~= "java" then
+        return false
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local line = vim.api.nvim_get_current_line()
+    return M.is_java_mapper_method_name(line, cursor[2])
+end
+
 function M.get_capabilities()
     local capabilities = vim.lsp.protocol.make_client_capabilities()
     local ok, blink = pcall(require, "blink.cmp")
@@ -10,6 +43,16 @@ function M.get_capabilities()
         return blink.get_lsp_capabilities(capabilities)
     end
     return capabilities
+end
+
+function M.smart_definition()
+    local ok, mybatis = pcall(require, "mybatis")
+    if ok and mybatis.is_mapper_file(0) and should_use_mybatis_definition() then
+        mybatis.jump_or_fallback()
+        return
+    end
+
+    Snacks.picker.lsp_definitions()
 end
 
 function M.setup_diagnostics()
