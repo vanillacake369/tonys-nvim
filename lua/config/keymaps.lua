@@ -234,9 +234,33 @@ M.definitions = {
         {
             "<leader>gD",
             function()
-                require("gitsigns").diffthis()
+                local tab = vim.api.nvim_get_current_tabpage()
+                local windows = vim.api.nvim_tabpage_list_wins(tab)
+                local diff_active = false
+
+                for _, win in ipairs(windows) do
+                    if vim.wo[win].diff then
+                        diff_active = true
+                        break
+                    end
+                end
+
+                if diff_active then
+                    vim.cmd("diffoff!")
+
+                    for _, win in ipairs(windows) do
+                        if vim.api.nvim_win_is_valid(win) then
+                            local buf = vim.api.nvim_win_get_buf(win)
+                            if vim.api.nvim_buf_get_name(buf):match("^gitsigns://") then
+                                vim.api.nvim_win_close(win, true)
+                            end
+                        end
+                    end
+                else
+                    require("gitsigns").diffthis()
+                end
             end,
-            desc = "Diff Current File",
+            desc = "Toggle File Diff",
         },
         {
             "<leader>go",
