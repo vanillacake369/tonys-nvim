@@ -341,15 +341,6 @@ return {
             vim.list_extend(opts.ensure_installed, { "java" })
         end,
     },
-    -- Java formatter 는 별도 clang-format-java alias 로 conform 에 연결한다.
-    -- 공통 C/C++ clang-format 설정과 Java style 을 분리하기 위한 항목이다.
-    {
-        "stevearc/conform.nvim",
-        opts = function(_, opts)
-            opts.formatters_by_ft = opts.formatters_by_ft or {}
-            opts.formatters_by_ft.java = { "clang-format-java" }
-        end,
-    },
     -- Java attach debug configuration 을 공통 nvim-dap setup 에 주입한다.
     -- Spring Boot 원격 JVM debug port 를 입력받아 붙는 흐름이다.
     {
