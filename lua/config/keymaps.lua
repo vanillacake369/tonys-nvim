@@ -33,7 +33,7 @@ M.definitions = {
         {
             "gd",
             function()
-                Snacks.picker.lsp_definitions()
+                require("plugins.core.lsp").smart_definition()
             end,
             desc = "Go to Definition",
         },
@@ -132,7 +132,7 @@ M.definitions = {
         {
             "grd",
             function()
-                Snacks.picker.lsp_definitions()
+                require("plugins.core.lsp").smart_definition()
             end,
             desc = "Definitions",
         },
