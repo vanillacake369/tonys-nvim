@@ -78,7 +78,7 @@ end
 local function java_cmd(root_dir)
     -- jdtls 는 JVM arg 를 CLI 로만 받는다.
     -- Gradle daemon idle timeout 과 Lombok javaagent 를 LSP lifecycle 에 묶는다.
-    local cmd = { "jdtls", "-data", java_workspace_dir(root_dir), "-clean" }
+    local cmd = { "jdtls", "-data", java_workspace_dir(root_dir) }
     table.insert(cmd, "--jvm-arg=-Dfile.encoding=UTF-8")
     table.insert(cmd, "--jvm-arg=-Dorg.gradle.daemon.idletimeout=" .. GRADLE_DAEMON_IDLE_TIMEOUT_MS)
 
