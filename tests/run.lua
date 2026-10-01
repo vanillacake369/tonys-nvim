@@ -1,5 +1,6 @@
 -- GIVEN
 local specs = {
+    "tests/mybatis_spec.lua",
     "tests/paste_img_fallback_spec.lua",
     "tests/debugger_spec.lua",
     "tests/jvm_gradle_command_spec.lua",
