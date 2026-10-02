@@ -123,12 +123,12 @@ local function java_settings()
                     importOrder = { "java", "javax", "org", "com" },
                 },
             },
+            import = {
+                gradle = { enabled = true, wrapper = { enabled = true } },
+                maven = { enabled = true },
+            },
             configuration = {
                 updateBuildConfiguration = "interactive",
-                import = {
-                    gradle = { enabled = true, wrapper = { enabled = true } },
-                    maven = { enabled = true },
-                },
             },
         },
     }
