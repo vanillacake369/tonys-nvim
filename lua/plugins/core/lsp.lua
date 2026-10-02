@@ -52,6 +52,15 @@ function M.smart_definition()
         return
     end
 
+    local clients = vim.lsp.get_clients({ bufnr = 0, method = "textDocument/definition" })
+    if #clients == 0 then
+        vim.notify(
+            ("No LSP definition provider attached (filetype: %s). Check :LspInfo."):format(vim.bo.filetype),
+            vim.log.levels.INFO
+        )
+        return
+    end
+
     Snacks.picker.lsp_definitions()
 end
 
