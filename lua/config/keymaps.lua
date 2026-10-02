@@ -984,11 +984,10 @@ M.definitions = {
     -- rest.nvim HTTP 요청
     rest = {
         name = "+HTTP Requests",
-        prefix = "<leader>R",
-        { "<leader>Rr", "<cmd>Rest run<cr>", desc = "Run Request Under Cursor" },
-        { "<leader>Rl", "<cmd>Rest last<cr>", desc = "Run Last Request" },
-        { "<leader>Ro", "<cmd>Rest open<cr>", desc = "Open Response" },
-        { "<leader>Re", "<cmd>Rest env select<cr>", desc = "Select Environment File" },
+        { "<localleader>rr", "<cmd>Rest run<cr>", desc = "Run Request Under Cursor" },
+        { "<localleader>rl", "<cmd>Rest last<cr>", desc = "Run Last Request" },
+        { "<localleader>ro", "<cmd>Rest open<cr>", desc = "Open Response" },
+        { "<localleader>re", "<cmd>Rest env select<cr>", desc = "Select Environment File" },
     },
 
     -- img-clip 기반 붙여넣기
