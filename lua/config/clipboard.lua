@@ -7,7 +7,11 @@ vim.keymap.set("n", "dd", '"_dd')
 vim.opt.clipboard = "unnamedplus"
 
 -- 실행 platform 에 맞춰 clipboard provider 를 고른다.
-if vim.fn.has("mac") == 1 then
+-- 다만 SSH 환경에서는 remote clipboard tool 대신 OSC 52 로
+-- local terminal 의 clipboard 에 전달한다.
+if vim.env.SSH_TTY or vim.env.SSH_CONNECTION then
+    vim.g.clipboard = "osc52"
+elseif vim.fn.has("mac") == 1 then
     -- macOS 는 pbcopy/pbpaste 를 사용한다.
     vim.g.clipboard = {
         name = "macOS-clipboard",
