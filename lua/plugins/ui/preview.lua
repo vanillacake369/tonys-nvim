@@ -1,7 +1,10 @@
 local M = {}
 
--- render-markdown 으로 markdown/mdx buffer 를 읽기 좋은 inline preview 로 표시한다.
--- 이미지 preview 명령은 Snacks image doc attach 를 직접 제어하는 보조 layer 다.
+-- render-markdown 으로 markdown/mdx buffer 를
+-- 읽기 좋은 inline preview 로 표시한다.
+-- 이미지 preview 명령은
+-- Snacks image doc attach 를 직접 제어하는 보조 layer 다.
+-- vscode 일 때는 vim.g.vscode 를 통해 disable 처리를 한다
 M[1] = "MeanderingProgrammer/render-markdown.nvim"
 M.dependencies = { "nvim-mini/mini.icons" }
 M.ft = { "markdown", "mdx" }
@@ -10,6 +13,7 @@ M.opts = {
     render_modes = { "n", "c", "t" },
     max_file_size = 10.0,
 }
+M.enabled = not vim.g.vscode
 M.init = function()
     M.setup()
 end
