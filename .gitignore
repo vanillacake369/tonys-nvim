@@ -13,6 +13,11 @@ result-*
 *.swo
 *~
 
+# Host-local convention adapters
+lua/config/conventions_local.lua
+lua/plugins/conventions/*_local.lua
+lua/plugins/lang/*_local.lua
+
 # OS files
 .DS_Store
 Thumbs.db
