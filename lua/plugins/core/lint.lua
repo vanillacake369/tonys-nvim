@@ -9,6 +9,36 @@ return {
         },
         config = function(_, opts)
             local lint = require("lint")
+            local conventions = require("config.conventions")
+
+            local function default_linters_for_ft(ft)
+                local names = lint.linters_by_ft[ft]
+                if names then
+                    return names
+                end
+
+                local deduped = {}
+                local result = {}
+                for _, part in ipairs(vim.split(ft, ".", { plain = true })) do
+                    for _, name in ipairs(lint.linters_by_ft[part] or {}) do
+                        if not deduped[name] then
+                            deduped[name] = true
+                            table.insert(result, name)
+                        end
+                    end
+                end
+                return result
+            end
+
+            local function try_lint_current_buffer()
+                local ft = vim.bo.filetype
+                local fallback = default_linters_for_ft(ft)
+                local names = conventions.linters(0, ft, fallback)
+                if not names or vim.tbl_isempty(names) then
+                    return
+                end
+                lint.try_lint(names)
+            end
 
             -- yamllint 는 repo-local 설정 파일을 강제해 manifest lint 결과를 맞춘다.
             lint.linters.yamllint.args = {
@@ -34,7 +64,7 @@ return {
             vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
                 group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
                 callback = function()
-                    require("lint").try_lint()
+                    try_lint_current_buffer()
                 end,
             })
         end,
