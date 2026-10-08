@@ -61,6 +61,21 @@ lua/plugins/
 문서에는 새 기능 목록을 추가하지 않습니다. 복잡한 의도나 제약은 해당 Lua 파일
 근처에 한국어 주석 블록으로 남깁니다.
 
+## Host-Local Conventions
+
+언어별 formatter/linter 컨벤션이 호스트나 workspace 마다 다르면 tracked
+language slice 를 바꾸지 않고 convention resolver 를 씁니다.
+
+- `lua/config/conventions_local.lua`에 path/marker rule 을 선언합니다.
+- `lua/plugins/conventions/*_local.lua`에 formatter/linter pack 을 둡니다.
+- rule 은 `roots = { "~/dev/vpp-*" }` 또는 `markers = { ".vpplab-convention" }`
+  처럼 선언합니다. marker 는 `.gitignore` 같은 표식 파일/디렉토리입니다.
+- local pack manifest 는 formatter/linter module 을 묶기만 합니다. 실제
+  formatter 정의와 linter 진단 규칙은 파일을 분리합니다.
+- local formatter/linter module 은 컨벤션 문서 URL과 구현 조항 주석을 남깁니다.
+- 공통화할 수 있는 규칙만 tracked `lua/plugins/lang/*.lua` 또는
+  `lua/plugins/core/*.lua`로 승격합니다.
+
 ## Comment Convention
 
 - 2줄 이상이어도 `--[[ ... ]]` block comment 를 쓰지 않는다.
