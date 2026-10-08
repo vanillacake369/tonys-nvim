@@ -21,6 +21,10 @@ return {
     end,
     opts = function(_, opts)
         opts = opts or {}
+        local formatters_by_ft = opts.formatters_by_ft or {}
+        formatters_by_ft.java = function(bufnr)
+            return require("config.conventions").formatters(bufnr, "java", { "clang-format-java" })
+        end
 
         -- Java clang-format style 은 full-buffer 와 range formatting args 에서 재사용한다.
         local java_style = "{ "
@@ -147,7 +151,7 @@ return {
                 timeout_ms = FORMAT_ON_SAVE_TIMEOUT_MS,
                 lsp_format = "never",
             },
-            formatters_by_ft = opts.formatters_by_ft or {},
+            formatters_by_ft = formatters_by_ft,
 
             formatters = vim.tbl_deep_extend("force", default_formatters, opts.formatters or {}),
         }
