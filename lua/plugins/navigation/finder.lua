@@ -7,6 +7,53 @@ local PICKER_LAYOUT_HEIGHT_RATIO = 0.85
 local PICKER_TREE_WIDTH_RATIO = 0.35
 local PICKER_PREVIEW_WIDTH_RATIO = 0.65
 
+local function explorer_copy_with_default_name(picker, item)
+    if not item then
+        return
+    end
+
+    local paths = vim.tbl_map(Snacks.picker.util.path, picker:selected())
+    if #paths > 0 then
+        local dir = picker:dir()
+        Snacks.picker.util.copy(paths, dir)
+        picker.list:set_selected()
+
+        local tree = require("snacks.explorer.tree")
+        tree:refresh(dir)
+        tree:open(dir)
+        require("snacks.explorer.actions").update(picker, { target = dir })
+        return
+    end
+
+    local root = vim.fs.normalize(vim.fn.getcwd(0))
+    local from = vim.fs.normalize(item.file)
+    if from:find(root, 1, true) ~= 1 then
+        root = vim.fs.dirname(from)
+    end
+    local default = from:sub(#root + 2)
+
+    Snacks.input({
+        prompt = "Copy to",
+        default = default,
+        completion = "file",
+    }, function(value)
+        if not value or value:find("^%s*$") then
+            return
+        end
+
+        local to = vim.fs.normalize(root .. "/" .. value)
+        local uv = vim.uv or vim.loop
+        if uv.fs_stat(to) then
+            Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
+            return
+        end
+
+        Snacks.picker.util.copy_path(item.file, to)
+        require("snacks.explorer.tree"):refresh(vim.fs.dirname(to))
+        require("snacks.explorer.actions").update(picker, { target = to })
+    end)
+end
+
 return {
     -- Snacks 를 picker, explorer, terminal, notifier, image preview 의 공통 UI 레이어로 쓴다.
     -- telescope 스타일 layout 과 UI toggle 을 한 플러그인 spec 에 모아둔다.
@@ -66,6 +113,9 @@ return {
                 explorer = {
                     hidden = true,
                     ignored = true,
+                    actions = {
+                        explorer_copy = explorer_copy_with_default_name,
+                    },
                 },
                 recent = {
                     cwd_only = false,
