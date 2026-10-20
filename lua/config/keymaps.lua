@@ -596,6 +596,20 @@ M.definitions = {
             end,
             desc = "Find Workspace Symbols",
         },
+        {
+            "<leader>fk",
+            function()
+                Snacks.picker.keymaps()
+            end,
+            desc = "Find Keymaps",
+        },
+        {
+            "<leader>fC",
+            function()
+                Snacks.picker.commands()
+            end,
+            desc = "Find Commands",
+        },
     },
 
     -- Spring Initializr 프로젝트 생성
