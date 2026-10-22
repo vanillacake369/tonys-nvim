@@ -5,7 +5,12 @@ return {
         "lewis6991/gitsigns.nvim",
         event = { "BufReadPre", "BufNewFile" },
         keys = function()
-            return require("config.keymaps").bind("git")
+            return require("config.keymaps").bind({
+                group = "git",
+                filter = function(item)
+                    return item[1] ~= "<leader>gD"
+                end,
+            })
         end,
         opts = {
             signs = {
@@ -14,6 +19,35 @@ return {
                 delete = { text = "_" },
                 topdelete = { text = "‾" },
                 changedelete = { text = "~" },
+            },
+        },
+    },
+    -- 여러 파일의 변경을 한 탭에서 검토하고 merge/rebase 충돌을 해소한다.
+    -- 현재 buffer hunk 조작은 위 Gitsigns spec이 계속 소유한다.
+    {
+        "sindrets/diffview.nvim",
+        cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory" },
+        keys = function()
+            return require("config.keymaps").bind({
+                group = "git",
+                filter = function(item)
+                    return item[1] == "<leader>gD"
+                end,
+            })
+        end,
+        opts = {
+            -- Diffview는 popup이 아닌 tabpage라 기본 q 종료 key가 없다.
+            -- help/option panel의 기존 q는 panel만 닫으므로 그대로 둔다.
+            keymaps = {
+                view = {
+                    { "n", "q", "<Cmd>DiffviewClose<CR>", { desc = "Close Diffview" } },
+                },
+                file_panel = {
+                    { "n", "q", "<Cmd>DiffviewClose<CR>", { desc = "Close Diffview" } },
+                },
+                file_history_panel = {
+                    { "n", "q", "<Cmd>DiffviewClose<CR>", { desc = "Close Diffview" } },
+                },
             },
         },
     },

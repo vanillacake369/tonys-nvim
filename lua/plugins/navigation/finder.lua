@@ -84,6 +84,21 @@ return {
         picker = {
             enabled = true,
             ui_select = true,
+            -- Git preview는 Snacks의 자체 fancy renderer 대신 delta를 PTY에서
+            -- 실행한다. `--side-by-side`는 좁은 picker preview에서 가독성이
+            -- 나빠지므로 Lazygit renderer에만 둔다.
+            previewers = {
+                diff = {
+                    style = "terminal",
+                    cmd = { "delta", "--dark", "--paging=never", "--syntax-theme", "base16-256" },
+                },
+                git = {
+                    args = {
+                        "-c",
+                        "core.pager=delta --dark --paging=never --syntax-theme base16-256",
+                    },
+                },
+            },
             layouts = {
                 telescope = {
                     layout = {
