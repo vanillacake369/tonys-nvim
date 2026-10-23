@@ -36,6 +36,15 @@ return {
             })
         end,
         opts = {
+            hooks = {
+                view_post_layout = function(view)
+                    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(view.tabpage)) do
+                        if vim.wo[win].diff then
+                            vim.wo[win].scrollbind = true
+                        end
+                    end
+                end,
+            },
             -- Diffview는 popup이 아닌 tabpage라 기본 q 종료 key가 없다.
             -- help/option panel의 기존 q는 panel만 닫으므로 그대로 둔다.
             keymaps = {
