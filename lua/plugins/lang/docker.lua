@@ -1,9 +1,13 @@
 return {
-    -- docker-compose YAML 전용 LSP 를 공통 lspconfig 서버 목록에 등록한다.
+    -- Dockerfile와 docker-compose YAML LSP를 공통 서버 목록에 등록한다.
     {
         "neovim/nvim-lspconfig",
         opts = function(_, opts)
             opts.servers = opts.servers or {}
+            opts.servers.dockerls = {
+                cmd = { "docker-langserver", "--stdio" },
+                filetypes = { "dockerfile" },
+            }
             opts.servers.docker_compose_language_service = {
                 cmd = { "docker-compose-langserver", "--stdio" },
                 filetypes = { "yaml.docker-compose" },
