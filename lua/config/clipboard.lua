@@ -1,7 +1,7 @@
 -- 기본 yank/delete/change/paste 에
 -- 시스템 clipboard(+) 레지스터를 사용한다.
--- yy 로 복사한 내용은 로컬에서는 OS clipboard,
--- SSH 에서는 OSC 52 를 통해 전달된다.
+-- yy 로 복사한 내용은 SSH/Zellij 밖에서는 OS clipboard,
+-- SSH 또는 Zellij 안에서는 OSC 52 를 통해 전달된다.
 -- NOTE : dd, x 등 삭제 작업도 시스템 clipboard 를 덮어쓸 수 있다.
 vim.opt.clipboard = "unnamedplus"
 
@@ -15,9 +15,10 @@ local function paste()
     }
 end
 
--- SSH 환경에서는 OSC 52 를 사용해 로컬 터미널 clipboard 에 복사한다.
--- 로컬 환경에서는 OS 별 clipboard provider 를 사용한다.
-if vim.env.SSH_TTY or vim.env.SSH_CONNECTION then
+-- SSH/Zellij 안에서는 OSC 52 로 연결된 터미널 clipboard 에 복사한다.
+-- 로컬에서 만든 Zellij 세션에 SSH 로 attach 하면 pane 에 SSH 변수가 없을 수 있다.
+-- 그 밖에서는 OS 별 clipboard provider 를 사용한다.
+if vim.env.SSH_TTY or vim.env.SSH_CONNECTION or vim.env.ZELLIJ then
     vim.g.clipboard = {
         name = "OSC 52",
         copy = {

@@ -234,9 +234,16 @@ M.definitions = {
         {
             "<leader>gD",
             function()
-                vim.cmd("DiffviewOpen")
+                require("plugins.core.git").review_working_tree()
             end,
             desc = "Review Working Tree Diff",
+        },
+        {
+            "<leader>gP",
+            function()
+                require("plugins.core.git").review_current_pr()
+            end,
+            desc = "Review Current PR",
         },
         {
             "<leader>go",
@@ -269,16 +276,7 @@ M.definitions = {
         {
             "<leader>gR",
             function()
-                local file = vim.fn.expand("%:t")
-                local choice = vim.fn.confirm(
-                    string.format("Discard all unstaged changes in %s?", file ~= "" and file or "current buffer"),
-                    "&Yes\n&No",
-                    2
-                )
-
-                if choice == 1 then
-                    require("gitsigns").reset_buffer()
-                end
+                require("plugins.core.git").reset_buffer()
             end,
             desc = "Reset Current File",
         },
