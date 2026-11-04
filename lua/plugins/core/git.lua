@@ -5,6 +5,38 @@ function M.review_working_tree()
     require("diffview").open({})
 end
 
+-- 입력 UI 가 열린 뒤 cwd 가 바뀌어도 호출한 저장소의 커밋을 비교한다.
+-- Snacks picker 를 통해 브랜치를 선택한다.
+function M.review_branch()
+    local cwd = vim.fn.getcwd()
+
+    Snacks.picker.git_branches({
+        cwd = cwd,
+        confirm = function(picker, item)
+            picker:close()
+
+            if not item then
+                return
+            end
+
+            require("diffview").open({
+                "-C" .. cwd,
+                item.branch .. "...HEAD",
+            })
+        end,
+    })
+end
+
+-- diff window 는 index hunk 대신 현재 비교 중인 두 revision 사이를 이동한다.
+function M.nav_hunk(direction)
+    if vim.wo.diff then
+        local motion = direction == "next" and "]c" or "[c"
+        vim.cmd.normal({ tostring(vim.v.count1) .. motion, bang = true })
+    else
+        require("gitsigns").nav_hunk(direction)
+    end
+end
+
 local function run(argv, cwd, timeout, callback)
     local ok, err = pcall(vim.system, argv, { cwd = cwd, text = true, timeout = timeout }, vim.schedule_wrap(callback))
     if not ok then
@@ -74,7 +106,7 @@ function M.reset_buffer()
 end
 
 local function is_review_key(item)
-    return item[1] == "<leader>gD" or item[1] == "<leader>gP"
+    return item[1] == "<leader>gD" or item[1] == "<leader>gP" or item[1] == "<leader>gB"
 end
 
 -- Git hunk 상태를 signcolumn 에 표시하고 hunk 단위 조작을 하기 위해 추가.

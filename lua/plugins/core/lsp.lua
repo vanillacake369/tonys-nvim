@@ -3,6 +3,107 @@ local LSP_DEBOUNCE_TEXT_CHANGES_MS = 150
 
 local M = {}
 
+local HOVER_POPUP_MIN_WIDTH = 96
+local HOVER_POPUP_WIDTH_RATIO = 0.82
+local HOVER_POPUP_MAX_WIDTH = 160
+local HOVER_POPUP_MIN_HEIGHT = 24
+local HOVER_POPUP_HEIGHT_RATIO = 0.72
+local HOVER_POPUP_MAX_HEIGHT = 48
+local HOVER_POPUP_BACKDROP = 60
+
+local hover_generation = 0
+
+-- 비동기 응답은 요청 당시 편집 위치에만 표시한다.
+-- 요청 실패는 정의 탐색으로 연결하고 지난 요청의 응답은 UI 를 변경하지 않는다.
+function M.show_documentation()
+    hover_generation = hover_generation + 1
+    local generation = hover_generation
+    local bufnr = vim.api.nvim_get_current_buf()
+    local winid = vim.api.nvim_get_current_win()
+    local cursor = vim.api.nvim_win_get_cursor(winid)
+    local changedtick = vim.api.nvim_buf_get_changedtick(bufnr)
+    local function is_current()
+        return generation == hover_generation
+            and vim.api.nvim_win_is_valid(winid)
+            and vim.api.nvim_buf_is_valid(bufnr)
+            and vim.api.nvim_get_current_win() == winid
+            and vim.api.nvim_get_current_buf() == bufnr
+            and vim.api.nvim_buf_get_changedtick(bufnr) == changedtick
+            and vim.deep_equal(vim.api.nvim_win_get_cursor(winid), cursor)
+    end
+
+    local client = vim.lsp.get_clients({
+        bufnr = bufnr,
+        method = "textDocument/hover",
+    })[1]
+
+    local function definitions()
+        Snacks.picker.lsp_definitions()
+    end
+
+    if not client then
+        return definitions()
+    end
+
+    local request_sent = client:request(
+        "textDocument/hover",
+        vim.lsp.util.make_position_params(winid, client.offset_encoding or "utf-16"),
+        function(err, result)
+            local is_current_request = is_current()
+            if not is_current_request then
+                return
+            end
+            local has_hover_contents = not err and result and result.contents
+            if not has_hover_contents then
+                return definitions()
+            end
+
+            local contents =
+                vim.split(table.concat(vim.lsp.util.convert_input_to_markdown_lines(result.contents), "\n"), "\n", {
+                    plain = true,
+                    trimempty = true,
+                })
+
+            if vim.tbl_isempty(contents) then
+                return definitions()
+            end
+
+            Snacks.win({
+                text = table.concat(contents, "\n"),
+                ft = "markdown",
+                width = math.max(
+                    HOVER_POPUP_MIN_WIDTH,
+                    math.min(math.floor(vim.o.columns * HOVER_POPUP_WIDTH_RATIO), HOVER_POPUP_MAX_WIDTH)
+                ),
+                height = math.max(
+                    HOVER_POPUP_MIN_HEIGHT,
+                    math.min(math.floor(vim.o.lines * HOVER_POPUP_HEIGHT_RATIO), HOVER_POPUP_MAX_HEIGHT)
+                ),
+                border = "rounded",
+                backdrop = HOVER_POPUP_BACKDROP,
+                enter = true,
+                wo = {
+                    wrap = true,
+                    linebreak = true,
+                    conceallevel = 2,
+                },
+                keys = {
+                    q = "close",
+                    ["<Esc>"] = "close",
+                    ["<CR>"] = function(win)
+                        win:close()
+                        definitions()
+                    end,
+                },
+            })
+        end,
+        bufnr
+    )
+    if not request_sent then
+        return definitions()
+    end
+end
+
 function M.is_java_mapper_method_name(line, cursor_col)
     local offset = 1
     while true do
@@ -336,16 +437,8 @@ M[3] = {
             end,
         })
 
-        -- nixd 프로세스 정리 (Vim 종료 시)
-        vim.api.nvim_create_autocmd("VimLeavePre", {
-            group = vim.api.nvim_create_augroup("CleanupNixd", { clear = true }),
-            callback = function()
-                -- evaluation cache 를 flush 할 수 있도록 nixd 는 SIGTERM 으로 종료한다.
-                -- SIGKILL 은 오래된 incremental evaluation state 를 남길 수 있다.
-                os.execute("pkill -15 nixd")
-                os.execute("pkill -15 nixd-attrset-eval")
-            end,
-        })
+        -- 종료는 Neovim 기본 LSP handler 가 현재 인스턴스의 client 만 정리한다.
+        -- 이름 기반 pkill 은 다른 세션의 nixd/evaluator 까지 종료하므로 사용하지 않는다.
 
         -- 각 서버 설정 및 활성화 (Neovim 0.11+ 신규 API 활용)
         local servers = opts.servers or {}

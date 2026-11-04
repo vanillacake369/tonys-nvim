@@ -7,13 +7,16 @@ local PICKER_LAYOUT_HEIGHT_RATIO = 0.85
 local PICKER_TREE_WIDTH_RATIO = 0.35
 local PICKER_PREVIEW_WIDTH_RATIO = 0.65
 
+-- 프로젝트 내부 경로는 상대 경로로, 외부 항목은 원래 디렉터리의 이름으로 제안한다.
+-- 다중 선택의 기존 복사 흐름과 취소·덮어쓰기 방지를 유지한다.
 local function explorer_copy_with_default_name(picker, item)
     if not item then
         return
     end
 
     local paths = vim.tbl_map(Snacks.picker.util.path, picker:selected())
-    if #paths > 0 then
+    local has_selection = #paths > 0
+    if has_selection then
         local dir = picker:dir()
         Snacks.picker.util.copy(paths, dir)
         picker.list:set_selected()
@@ -27,23 +30,27 @@ local function explorer_copy_with_default_name(picker, item)
 
     local root = vim.fs.normalize(vim.fn.getcwd(0))
     local from = vim.fs.normalize(item.file)
-    if from:find(root, 1, true) ~= 1 then
+    local default = vim.fs.relpath(root, from)
+    local is_in_project = default ~= nil
+    if not is_in_project then
         root = vim.fs.dirname(from)
+        default = vim.fs.basename(from)
     end
-    local default = from:sub(#root + 2)
 
     Snacks.input({
         prompt = "Copy to",
         default = default,
         completion = "file",
     }, function(value)
-        if not value or value:find("^%s*$") then
+        local is_cancelled = not value or value:find("^%s*$") ~= nil
+        if is_cancelled then
             return
         end
 
         local to = vim.fs.normalize(root .. "/" .. value)
         local uv = vim.uv or vim.loop
-        if uv.fs_stat(to) then
+        local destination_exists = uv.fs_stat(to) ~= nil
+        if destination_exists then
             Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
             return
         end

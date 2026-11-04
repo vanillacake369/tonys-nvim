@@ -13,14 +13,6 @@ vim.keymap.set("n", "<C-b>", "<C-b>zz", { desc = "Scroll Full Page Up and Center
 
 local M = {}
 
-local HOVER_POPUP_MIN_WIDTH = 96
-local HOVER_POPUP_WIDTH_RATIO = 0.82
-local HOVER_POPUP_MAX_WIDTH = 160
-local HOVER_POPUP_MIN_HEIGHT = 24
-local HOVER_POPUP_HEIGHT_RATIO = 0.72
-local HOVER_POPUP_MAX_HEIGHT = 48
-local HOVER_POPUP_BACKDROP = 60
-
 local function get_buf_path()
     return vim.fn.expand("%:p:h")
 end
@@ -47,71 +39,7 @@ M.definitions = {
         {
             "K",
             function()
-                local client = vim.lsp.get_clients({
-                    bufnr = 0,
-                    method = "textDocument/hover",
-                })[1]
-
-                local function definitions()
-                    Snacks.picker.lsp_definitions()
-                end
-
-                if not client then
-                    return definitions()
-                end
-
-                client:request(
-                    "textDocument/hover",
-                    vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16"),
-                    function(err, result)
-                        if err or not (result and result.contents) then
-                            return definitions()
-                        end
-
-                        local contents = vim.split(
-                            table.concat(vim.lsp.util.convert_input_to_markdown_lines(result.contents), "\n"),
-                            "\n",
-                            {
-                                plain = true,
-                                trimempty = true,
-                            }
-                        )
-
-                        if vim.tbl_isempty(contents) then
-                            return definitions()
-                        end
-
-                        Snacks.win({
-                            text = table.concat(contents, "\n"),
-                            ft = "markdown",
-                            width = math.max(
-                                HOVER_POPUP_MIN_WIDTH,
-                                math.min(math.floor(vim.o.columns * HOVER_POPUP_WIDTH_RATIO), HOVER_POPUP_MAX_WIDTH)
-                            ),
-                            height = math.max(
-                                HOVER_POPUP_MIN_HEIGHT,
-                                math.min(math.floor(vim.o.lines * HOVER_POPUP_HEIGHT_RATIO), HOVER_POPUP_MAX_HEIGHT)
-                            ),
-                            border = "rounded",
-                            backdrop = HOVER_POPUP_BACKDROP,
-                            enter = true,
-                            wo = {
-                                wrap = true,
-                                linebreak = true,
-                                conceallevel = 2,
-                            },
-                            keys = {
-                                q = "close",
-                                ["<Esc>"] = "close",
-                                ["<CR>"] = function(win)
-                                    win:close()
-                                    definitions()
-                                end,
-                            },
-                        })
-                    end,
-                    0
-                )
+                require("plugins.core.lsp").show_documentation()
             end,
             desc = "Show Documentation",
         },
@@ -225,11 +153,11 @@ M.definitions = {
             desc = "Blame Line",
         },
         {
-            "<leader>gd",
+            "<leader>gB",
             function()
-                Snacks.picker.git_diff()
+                require("plugins.core.git").review_branch()
             end,
-            desc = "Git Diff (Hunks)",
+            desc = "Review Branch Diff",
         },
         {
             "<leader>gD",
@@ -281,18 +209,16 @@ M.definitions = {
             desc = "Reset Current File",
         },
         {
-            mode = { "n", "t" },
             "]h",
             function()
-                require("gitsigns").next_hunk()
+                require("plugins.core.git").nav_hunk("next")
             end,
             desc = "Next Hunk",
         },
         {
-            mode = { "n", "t" },
             "[h",
             function()
-                require("gitsigns").prev_hunk()
+                require("plugins.core.git").nav_hunk("prev")
             end,
             desc = "Prev Hunk",
         },
@@ -460,28 +386,10 @@ M.definitions = {
         },
         { "<leader>br", "<Cmd>BufferLineCloseRight<CR>", desc = "Close Buffers to Right" },
         { "<leader>bl", "<Cmd>BufferLineCloseLeft<CR>", desc = "Close Buffers to Left" },
-        { "<leader>bu", "<Cmd>b #<CR>", desc = "Undo / Restore Closed Buffer" },
         {
             "<leader>bo",
             function()
-                local visible_bufs = {}
-                for _, win in ipairs(vim.api.nvim_list_wins()) do
-                    visible_bufs[vim.api.nvim_win_get_buf(win)] = true
-                end
-
-                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-                    local name = vim.api.nvim_buf_get_name(buf)
-                    local is_file_buffer = vim.bo[buf].buflisted
-                        and vim.bo[buf].buftype == ""
-                        and not vim.bo[buf].modified
-                        and name ~= ""
-                        and not name:match("^%w[%w+.-]*://")
-                        and vim.fn.filereadable(name) == 1
-
-                    if vim.api.nvim_buf_is_loaded(buf) and is_file_buffer and not visible_bufs[buf] then
-                        Snacks.bufdelete({ buf = buf })
-                    end
-                end
+                require("plugins.ui.buffer").delete_hidden_files()
             end,
             desc = "Delete Hidden File Buffers",
         },
@@ -631,7 +539,7 @@ M.definitions = {
         {
             "<leader>of",
             "<cmd>TodoTrouble cwd=%:p:h<cr>",
-            desc = "Todo Current File",
+            desc = "Todo Current Directory",
         },
     },
 
