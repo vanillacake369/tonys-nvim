@@ -1,4 +1,6 @@
--- Java 는 jdtls 전용 lifecycle 이 필요해 공통 lsp.lua 와 분리.
+-- Java LSP(jdtls) 는 프로젝트별 workspace 와
+-- 별도 lifecycle 이 필요해 공통 lsp.lua에서 분리한다.
+-- Gradle/Maven classpath 동기화와 Java debug 연결도 이 파일에서 관리한다.
 local project_markers = { "settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "pom.xml" }
 local update_stale_test_classpath
 local WORKSPACE_HASH_LENGTH = 8
@@ -7,6 +9,7 @@ local ORGANIZE_IMPORTS_STAR_THRESHOLD = 9999
 local JDTLS_DEBOUNCE_TEXT_CHANGES_MS = 150
 local JAVA_DAP_ATTACH_PORT = 5005
 
+-- Java DAP attach 시 디버그 포트를 입력받고, 빈 값이나 잘못된 값은 기본 포트로 처리한다.
 local function java_dap_attach_port()
     local input = vim.fn.input("Debug port: ", tostring(JAVA_DAP_ATTACH_PORT))
     if input == "" then
@@ -16,9 +19,10 @@ local function java_dap_attach_port()
     return tonumber(input) or JAVA_DAP_ATTACH_PORT
 end
 
+-- Lombok annotation processing을 지원할 javaagent JAR 경로를 찾는다.
+-- Nix 환경에서는 `lombok` executable 이 wrapper 일 수 있다.
+-- 명시 env 를 먼저 믿고, 없을 때만 wrapper 내부 jar 를 추출한다.
 local function get_lombok_jar()
-    -- Nix 환경에서는 `lombok` executable 이 wrapper 일 수 있다.
-    -- 명시 env 를 먼저 믿고, 없을 때만 wrapper 내부 jar 를 추출한다.
     local env_path = os.getenv("LOMBOK_JAR")
     if env_path and vim.fn.filereadable(env_path) == 1 then
         return env_path
@@ -44,9 +48,10 @@ local function get_lombok_jar()
     return nil
 end
 
+-- 프로젝트 경로별로 독립적인 JDTLS workspace cache 디렉터리를 만든다.
+-- 같은 project name 이 여러 경로에 있어 hash 를 붙인다.
+-- jdtls workspace cache 충돌은 stale diagnostics/import state 로 이어진다.
 local function java_workspace_dir(root_dir)
-    -- 같은 project name 이 여러 경로에 있어 hash 를 붙인다.
-    -- jdtls workspace cache 충돌은 stale diagnostics/import state 로 이어진다.
     local project_name = vim.fn.fnamemodify(vim.fs.normalize(root_dir), ":t")
     return vim.fn.stdpath("cache")
         .. "/jdtls/workspace/"
@@ -55,9 +60,10 @@ local function java_workspace_dir(root_dir)
         .. vim.fn.sha256(root_dir):sub(1, WORKSPACE_HASH_LENGTH)
 end
 
+-- TODO task tag 중복 진단을 막기 위한 Eclipse JDT preferences 파일을 생성한다.
+-- Eclipse JDT task tag diagnostics 는 todo-comments 와 충돌한다.
+-- 별도 prefs 파일로 jdtls 쪽 task tag 인식을 비운다.
 local function java_settings_url()
-    -- Eclipse JDT task tag diagnostics 는 todo-comments 와 충돌한다.
-    -- 별도 prefs 파일로 jdtls 쪽 task tag 인식을 비운다.
     local dir = vim.fn.stdpath("cache") .. "/jdtls"
     local path = dir .. "/org.eclipse.jdt.core.prefs"
     local lines = {
@@ -75,9 +81,10 @@ local function java_settings_url()
     return path
 end
 
+-- JDTLS 실행 명령에 workspace, JVM 인코딩, Gradle daemon 및 Lombok 옵션을 연결한다.
+-- jdtls 는 JVM arg 를 CLI 로만 받는다.
+-- Gradle daemon idle timeout 과 Lombok javaagent 를 LSP lifecycle 에 묶는다.
 local function java_cmd(root_dir)
-    -- jdtls 는 JVM arg 를 CLI 로만 받는다.
-    -- Gradle daemon idle timeout 과 Lombok javaagent 를 LSP lifecycle 에 묶는다.
     local cmd = { "jdtls", "-data", java_workspace_dir(root_dir) }
     table.insert(cmd, "--jvm-arg=-Dfile.encoding=UTF-8")
     table.insert(cmd, "--jvm-arg=-Dorg.gradle.daemon.idletimeout=" .. GRADLE_DAEMON_IDLE_TIMEOUT_MS)
@@ -90,6 +97,7 @@ local function java_cmd(root_dir)
     return cmd
 end
 
+-- Java completion, import 정리, Gradle/Maven 연동과 빌드 설정 갱신 정책을 구성한다.
 local function java_settings()
     return {
         ["java.settings.url"] = java_settings_url(),
@@ -134,10 +142,11 @@ local function java_settings()
     }
 end
 
+-- Gradle multi-module의 settings root를 우선하고, 그 외에는 빌드 파일로 프로젝트 root를 찾는다.
+-- multi-module Gradle project 에서는 jdtls 를 settings root 에 붙인다.
+-- 가장 가까운 submodule build.gradle 에 붙이면 정상적인 src/test/java 파일이
+-- imported classpath model 밖으로 밀릴 수 있다.
 local function java_root_dir()
-    -- multi-module Gradle project 에서는 jdtls 를 settings root 에 붙인다.
-    -- 가장 가까운 submodule build.gradle 에 붙이면 정상적인 src/test/java 파일이
-    -- imported classpath model 밖으로 밀릴 수 있다.
     local settings_root = vim.fs.find({ "settings.gradle", "settings.gradle.kts" }, {
         path = vim.fn.expand("%:p:h"),
         upward = true,
@@ -155,34 +164,48 @@ local function java_root_dir()
     return root_dir
 end
 
+-- 공통 debugger 설정에서 Java debug/test bundle을 가져와 JDTLS 확장 기능에 연결한다.
 local function java_debug_bundles()
-    local bundles = require("plugins.core.debugger").java_bundles()
+    local selection = require("plugins.core.debugger").java_bundle_selection()
+    local bundles = selection.bundles
     if vim.tbl_isempty(bundles) then
-        vim.notify("Java DAP bundles not found: install vscode-java-debug and vscode-java-test", vim.log.levels.WARN)
+        vim.notify(
+            "Java DAP bundles not found: " .. "install vscode-java-debug and vscode-java-test",
+            vim.log.levels.WARN
+        )
     end
-    return bundles
+    return bundles, selection.java_debug ~= false
 end
 
-local function setup_java_dap()
-    local jdtls = require("jdtls")
-    local jdtls_dap = require("jdtls.dap")
-    jdtls.setup_dap({ hotcodereplace = "auto" })
-    jdtls_dap.setup_dap_main_class_configs()
-end
-
+-- Java buffer에 JDTLS를 시작하거나 재사용하고, 계측·completion·debug 기능을 연결한다.
 local function setup_jdtls()
+    local trace = require("utils.java_lsp_trace")
+    trace.record("setup_enter", nil, vim.api.nvim_get_current_buf())
     local root_dir = java_root_dir()
     local jdtls = require("jdtls")
+    local java_debug = require("utils.java_debug")
+    local bundles, debug_available = java_debug_bundles()
 
-    jdtls.start_or_attach({
+    -- 첫 attach 전에 HCR을 등록하고 main 탐색은 debug 실행 시점으로 미룬다.
+    -- attach 시 executeCommand의 동기 index 대기가 첫 completion을 막지 않게 한다.
+    java_debug.prepare(debug_available)
+
+    trace.record("start_or_attach", nil, vim.api.nvim_get_current_buf(), {
+        root_id = vim.fn.sha256(root_dir):sub(1, 12),
+        mode = "lazy",
+    })
+    local client_id = jdtls.start_or_attach({
         cmd = java_cmd(root_dir),
         root_dir = root_dir,
         capabilities = require("plugins.core.lsp").get_capabilities(),
+        on_init = function(client)
+            trace.watch(client)
+            trace.record("on_init", client, vim.api.nvim_get_current_buf())
+        end,
         on_attach = function(client, bufnr)
             if update_stale_test_classpath then
                 update_stale_test_classpath(client, bufnr)
             end
-            vim.schedule(setup_java_dap)
         end,
         -- jdtls 는 UTF-16 offset 을 기대한다.
         -- incremental sync 에서 stale range 가 생겨 full sync 를 선택한다.
@@ -193,12 +216,14 @@ local function setup_jdtls()
         },
         init_options = {
             extendedClientCapabilities = jdtls.extendedClientCapabilities,
-            bundles = java_debug_bundles(),
+            bundles = bundles,
         },
         settings = java_settings(),
     })
+    trace.record("setup_return", vim.lsp.get_client_by_id(client_id or -1), vim.api.nvim_get_current_buf())
 end
 
+-- 빌드 설정 파일을 기준으로 해당 경로의 프로젝트 root를 찾는다.
 local function project_root_for(path)
     local marker = vim.fs.find(project_markers, {
         path = vim.fs.dirname(path),
@@ -208,6 +233,7 @@ local function project_root_for(path)
     return marker and vim.fs.dirname(marker) or nil
 end
 
+-- 여러 JDTLS client 중 해당 파일을 소유한 프로젝트 client인지 확인한다.
 local function client_owns_path(client, path)
     local root = client.config and client.config.root_dir
     if not root then
@@ -218,10 +244,13 @@ local function client_owns_path(client, path)
     return path == root or path:sub(1, #root + 1) == root .. "/"
 end
 
+-- 파일이 Gradle 표준 테스트 소스 경로(src/test/java)에 있는지 확인한다.
 local function is_gradle_test_java(path)
     return path:match("/src/test/java/.*%.java$") ~= nil
 end
 
+-- 생성된 .classpath에 테스트 소스 경로가 포함되어 있는지 확인한다.
+-- .classpath가 없으면 stale 여부를 확정할 수 없어 갱신을 요청하지 않는다.
 local function classpath_includes_test_java(path)
     local root = project_root_for(path)
     if not root then
@@ -242,14 +271,19 @@ local function classpath_includes_test_java(path)
     return false
 end
 
+-- 지정된 JDTLS client에 프로젝트 구성 재동기화 요청을 전송한다.
 local function request_project_configuration_update(client, bufnr, uri)
-    client:request("java/projectConfigurationUpdate", { uri = uri }, function(err)
+    local ok, sent = pcall(client.request, client, "java/projectConfigurationUpdate", { uri = uri }, function(err)
         if err then
             vim.notify(vim.inspect(err), vim.log.levels.WARN)
         end
     end, bufnr)
+    if not ok or not sent then
+        vim.notify("Java project configuration update could not be sent", vim.log.levels.WARN)
+    end
 end
 
+-- 테스트 소스가 classpath에서 누락된 경우에만 프로젝트 구성을 갱신한다.
 update_stale_test_classpath = function(client, bufnr)
     local path = vim.api.nvim_buf_get_name(bufnr)
     if not is_gradle_test_java(path) or classpath_includes_test_java(path) then
@@ -259,12 +293,32 @@ update_stale_test_classpath = function(client, bufnr)
     request_project_configuration_update(client, bufnr, vim.uri_from_bufnr(bufnr))
 end
 
+-- 파일 소유권을 먼저 확인하고 해당 JDTLS client에게만 저장 알림을 보낸다.
+-- 새 test source의 classpath 갱신은 기존 파일 저장과 분리한다.
+local function notify_saved_java(client, args, path, uri, change_type)
+    if not client_owns_path(client, path) then
+        return
+    end
+
+    local ok, sent = pcall(client.notify, client, "workspace/didChangeWatchedFiles", {
+        changes = { { uri = uri, type = change_type } },
+    })
+    if not ok or not sent then
+        vim.notify("Java file change notification could not be sent", vim.log.levels.WARN)
+    end
+    local is_new_test_java = change_type == 1 and is_gradle_test_java(path)
+    if is_new_test_java then
+        request_project_configuration_update(client, args.buf, uri)
+    end
+end
+
+-- JDTLS file watcher가 놓칠 수 있는 Java 파일 및 빌드 설정 변경을 수동으로 동기화한다.
+-- jdtls 가 새 .java 파일을 놓치는 file-watcher race 에 대비.
+-- 저장 시점에 didChangeWatchedFiles 노티를 보내 인덱싱을 강제.
+-- 새 test source 는 Buildship .classpath 가 stale 할 수 있어 제한적으로
+-- projectConfigurationUpdate 도 보낸다.
+-- build.gradle / pom.xml 변경은 projectConfigurationUpdate 로 reimport.
 local function setup_jdtls_manual_sync()
-    -- jdtls 가 새 .java 파일을 놓치는 file-watcher race 에 대비.
-    -- 저장 시점에 didChangeWatchedFiles 노티를 보내 인덱싱을 강제.
-    -- 새 test source 는 Buildship .classpath 가 stale 할 수 있어 제한적으로
-    -- projectConfigurationUpdate 도 보낸다.
-    -- build.gradle / pom.xml 변경은 projectConfigurationUpdate 로 reimport.
     local group = vim.api.nvim_create_augroup("JdtlsManualSync", { clear = true })
     local java_file_was_created = {}
 
@@ -286,14 +340,7 @@ local function setup_jdtls_manual_sync()
             local change_type = java_file_was_created[path] and 1 or 2 -- 1=Created 2=Changed 3=Deleted
             java_file_was_created[path] = nil
             for _, client in ipairs(vim.lsp.get_clients({ name = "jdtls" })) do
-                if client_owns_path(client, path) then
-                    client:notify("workspace/didChangeWatchedFiles", {
-                        changes = { { uri = uri, type = change_type } },
-                    })
-                    if change_type == 1 and is_gradle_test_java(path) then
-                        request_project_configuration_update(client, args.buf, uri)
-                    end
-                end
+                notify_saved_java(client, args, path, uri, change_type)
             end
         end,
     })
@@ -333,7 +380,8 @@ local function setup_jdtls_manual_sync()
 end
 
 return {
-    -- Java parser 를 treesitter 공통 설치 목록에 추가한다.
+    -- Java 문법 파서를 treesitter 공통 ensure_installed에 추가한다.
+    -- Java 소스의 syntax highlighting을 공통 treesitter 설정으로 처리한다.
     {
         "nvim-treesitter/nvim-treesitter",
         opts = function(_, opts)
@@ -341,8 +389,8 @@ return {
             vim.list_extend(opts.ensure_installed, { "java" })
         end,
     },
-    -- Java attach debug configuration 을 공통 nvim-dap setup 에 주입한다.
-    -- Spring Boot 원격 JVM debug port 를 입력받아 붙는 흐름이다.
+    -- Java DAP attach 구성을 공통 nvim-dap setup에 등록한다.
+    -- 실행 중인 Spring Boot JVM에 입력받은 debug port로 연결한다.
     {
         "mfussenegger/nvim-dap",
         opts = function(_, opts)
@@ -360,12 +408,22 @@ return {
             end)
         end,
     },
-    -- jdtls lifecycle, workspace, debug bundle 설정은 Java 전용 spec 으로 분리한다.
-    -- FileType 시점에 start_or_attach 하고 Gradle classpath refresh 도 여기서 묶는다.
+    -- Java LSP(jdtls)를 Java 전용 plugin spec에서 시작하고 lifecycle을 관리한다.
+    -- 프로젝트별 workspace, debug bundle, Gradle classpath 갱신을 함께 처리한다.
     {
         "mfussenegger/nvim-jdtls",
         dependencies = { "mfussenegger/nvim-dap" },
         ft = { "java" },
+        -- Java 전용 계측과 복구 명령은 첫 FileType 이전에 등록한다.
+        -- 공통 init.lua 와 LSP 설정은 이 언어의 lifecycle 을 소유하지 않는다.
+        init = function()
+            local trace = require("utils.java_lsp_trace")
+            trace.setup()
+            if vim.env.NVIM_JAVA_LSP_TRACE == "1" then
+                trace.start()
+            end
+            require("utils.java_debug").setup()
+        end,
         config = function()
             vim.api.nvim_create_autocmd("FileType", {
                 pattern = "java",

@@ -735,6 +735,11 @@ function M.debug_run()
         return
     end
 
+    if vim.bo.filetype == "java" then
+        local trace = require("utils.java_lsp_trace")
+        trace.watch_dap()
+        trace.record("debug_run", vim.lsp.get_clients({ name = "jdtls", bufnr = 0 })[1], 0)
+    end
     dap_continue()
 end
 
