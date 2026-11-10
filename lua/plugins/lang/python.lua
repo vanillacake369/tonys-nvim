@@ -7,6 +7,16 @@ return {
             opts.servers.pylsp = {
                 cmd = { "pylsp" },
                 filetypes = { "python" },
+                -- 스타일 진단 중복을 줄이되 pyflakes의 실시간 기본 오류는 유지한다.
+                settings = {
+                    pylsp = {
+                        plugins = {
+                            pycodestyle = { enabled = false },
+                            -- pyflakes는 입력 중 기본 오류 피드백을 위해 유지한다.
+                            mccabe = { enabled = false },
+                        },
+                    },
+                },
             }
         end,
     },
@@ -26,12 +36,13 @@ return {
             opts.linters_by_ft.python = { "ruff" }
         end,
     },
-    -- Python formatter 는 ruff fix/import/format 순서로 conform 에 맡긴다.
+    -- 저장 시 광범위한 ruff_fix는 적용하지 않고 import 정리와 포맷만 수행한다.
+    -- 전체 auto-fix는 명시적 Code Action/명령에서 실행하는 편이 예측 가능하다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)
             opts.formatters_by_ft = opts.formatters_by_ft or {}
-            opts.formatters_by_ft.python = { "ruff_fix", "ruff_organize_imports", "ruff_format" }
+            opts.formatters_by_ft.python = { "ruff_organize_imports", "ruff_format" }
         end,
     },
     -- debugpy adapter 를 DAP 에 등록해 현재 파일 launch 를 지원한다.

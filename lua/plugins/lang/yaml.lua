@@ -60,14 +60,15 @@ return {
             vim.list_extend(opts.ensure_installed, { "yaml" })
         end,
     },
-    -- YAML formatter 는 prettier 후 yamlfmt 로 conform 에 연결한다.
+    -- Prettier와 yamlfmt의 연쇄 포맷으로 인한 스타일 충돌을 방지한다.
+    -- 프로젝트가 yamlfmt를 표준으로 쓰면 Prettier 대신 yamlfmt 하나만 지정한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)
             opts.formatters_by_ft = opts.formatters_by_ft or {}
-            opts.formatters_by_ft.yaml = { "prettier", "yamlfmt" }
-            opts.formatters_by_ft["yaml.docker-compose"] = { "prettier", "yamlfmt" }
-            opts.formatters_by_ft["yaml.gitlab"] = { "prettier", "yamlfmt" }
+            opts.formatters_by_ft.yaml = { "prettier" }
+            opts.formatters_by_ft["yaml.docker-compose"] = { "prettier" }
+            opts.formatters_by_ft["yaml.gitlab"] = { "prettier" }
         end,
     },
 }

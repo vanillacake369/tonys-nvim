@@ -104,39 +104,6 @@ function M.show_documentation()
     end
 end
 
-function M.is_java_mapper_method_name(line, cursor_col)
-    local offset = 1
-    while true do
-        local start_col, end_col = line:find("[%a_$][%w_$]*%s*%(", offset)
-        if not start_col then
-            return false
-        end
-
-        local identifier_end = assert(line:find("%s*%(", start_col)) - 1
-        while identifier_end >= start_col and line:sub(identifier_end, identifier_end):match("%s") do
-            identifier_end = identifier_end - 1
-        end
-
-        if cursor_col >= start_col - 1 and cursor_col < identifier_end then
-            return true
-        end
-        offset = end_col + 1
-    end
-end
-
-local function should_use_mybatis_definition()
-    if vim.bo.filetype == "xml" then
-        return true
-    end
-    if vim.bo.filetype ~= "java" then
-        return false
-    end
-
-    local cursor = vim.api.nvim_win_get_cursor(0)
-    local line = vim.api.nvim_get_current_line()
-    return M.is_java_mapper_method_name(line, cursor[2])
-end
-
 function M.get_capabilities()
     local capabilities = vim.lsp.protocol.make_client_capabilities()
     local ok, blink = pcall(require, "blink.cmp")
@@ -146,19 +113,28 @@ function M.get_capabilities()
     return capabilities
 end
 
+-- 언어별 정의 이동 확장점. true 반환 시 공통 LSP fallback을 실행하지 않는다.
+local definition_handlers = {}
+
+function M.register_definition_handler(filetype, handler)
+    assert(type(filetype) == "string" and filetype ~= "", "filetype must be non-empty string")
+    assert(type(handler) == "function", "definition handler must be a function")
+    definition_handlers[filetype] = handler
+end
+
 function M.smart_definition()
-    local ok, mybatis = pcall(require, "mybatis")
-    if ok and mybatis.is_mapper_file(0) and should_use_mybatis_definition() then
-        mybatis.jump_or_fallback()
+    local filetype = vim.bo.filetype
+    local handler = definition_handlers[filetype]
+
+    if handler and handler(0) then
         return
     end
-
-    local clients = vim.lsp.get_clients({ bufnr = 0, method = "textDocument/definition" })
+    local clients = vim.lsp.get_clients({
+        bufnr = 0,
+        method = "textDocument/definition",
+    })
     if #clients == 0 then
-        vim.notify(
-            ("No LSP definition provider attached (filetype: %s). Check :LspInfo."):format(vim.bo.filetype),
-            vim.log.levels.INFO
-        )
+        vim.notify("No definition provider attached", vim.log.levels.INFO)
         return
     end
 
@@ -174,7 +150,7 @@ function M.setup_diagnostics()
         },
         underline = true,
         signs = true,
-        update_in_insert = true,
+        update_in_insert = false,
         severity_sort = true,
     })
 end
@@ -365,7 +341,8 @@ local function run_lsp_save_actions(bufnr, client_id)
     -- jdtls snapshot 은 generic codeAction/source.fixAll 에서 crash 날 수 있다.
     -- 전용 java/organizeImports request 를 대신 사용한다.
     if client.name == "jdtls" then
-        run_jdtls_organize_imports(client, bufnr)
+        -- Java import 정리를 저장 시 동기 실행하면 UI가 블로킹될 수 있다.
+        -- 자동 실행 대신 명시적 명령으로 분리한다.
         return
     end
 

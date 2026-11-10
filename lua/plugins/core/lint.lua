@@ -3,7 +3,7 @@ return {
     -- 언어별 플러그인 파일에서 linters_by_ft 를 확장해 공통 실행 흐름을 쓴다.
     {
         "mfussenegger/nvim-lint",
-        event = { "BufWritePost", "BufReadPost", "InsertLeave" },
+        event = { "BufWritePost", "BufReadPost" },
         opts = {
             linters_by_ft = {},
         },
@@ -30,13 +30,27 @@ return {
                 return result
             end
 
-            local function try_lint_current_buffer()
+            local heavy_filetypes = {
+                go = true,
+                terraform = true,
+                ["terraform-vars"] = true,
+            }
+
+            local function try_lint_current_buffer(event)
                 local ft = vim.bo.filetype
                 local fallback = default_linters_for_ft(ft)
                 local names = conventions.linters(0, ft, fallback)
                 if not names or vim.tbl_isempty(names) then
                     return
                 end
+
+                -- 대형 프로젝트를 탐색하는 linter는 저장 시에만 실행한다.
+                -- Go/Terraform은 LSP가 입력 중 실시간 피드백을 담당한다.
+                if heavy_filetypes[ft] and event ~= "BufWritePost" then
+                    return
+                end
+
+                -- InsertLeave는 등록하지 않는다. 편집 중 진단은 LSP가 담당한다.
                 lint.try_lint(names)
             end
 
@@ -60,11 +74,11 @@ return {
 
             lint.linters_by_ft = opts.linters_by_ft or {}
 
-            -- 저장/읽기/insert 종료 시점에 가장 가까운 lint 결과를 갱신한다.
-            vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
+            -- 외부 linter는 파일 열기 또는 저장 후에만 실행한다.
+            vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
                 group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
-                callback = function()
-                    try_lint_current_buffer()
+                callback = function(args)
+                    try_lint_current_buffer(args.event)
                 end,
             })
         end,

@@ -35,15 +35,14 @@ return {
             opts.linters_by_ft.go = { "golangcilint" }
         end,
     },
-    -- Go formatter 는 import 정리 후 gofmt 를 적용하도록 conform 에 연결한다.
+    -- goimports가 Go 소스 포맷과 import 정리를 수행한다.
+    -- go.mod/go.work는 goimports의 입력 포맷이 아니므로 연결하지 않는다.
+    -- gotmpl은 템플릿 엔진별 포맷터를 별도로 결정한다.
     {
         "stevearc/conform.nvim",
         opts = function(_, opts)
             opts.formatters_by_ft = opts.formatters_by_ft or {}
-            opts.formatters_by_ft.go = { "goimports", "gofmt" }
-            opts.formatters_by_ft.gomod = { "goimports", "gofmt" }
-            opts.formatters_by_ft.gowork = { "goimports", "gofmt" }
-            opts.formatters_by_ft.gotmpl = { "goimports", "gofmt" }
+            opts.formatters_by_ft.go = { "goimports" }
         end,
     },
     -- Delve DAP adapter 와 기본 launch/test configuration 을 등록한다.

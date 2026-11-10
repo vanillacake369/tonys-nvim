@@ -5,6 +5,10 @@ local function enable_format_on_save(_, bufnr)
         buffer = bufnr,
         group = vim.api.nvim_create_augroup("RustFormatOnSave_buf" .. bufnr, { clear = true }),
         callback = function(args)
+            -- 변경되지 않은 버퍼를 저장할 때 LSP 포맷 요청을 만들지 않는다.
+            if not vim.bo[args.buf].modified or not vim.bo[args.buf].modifiable then
+                return
+            end
             vim.lsp.buf.format({
                 bufnr = args.buf,
                 async = false,

@@ -1,3 +1,4 @@
+---@diagnostic disable: redundant-parameter
 -- Java LSP(jdtls) 는 프로젝트별 workspace 와
 -- 별도 lifecycle 이 필요해 공통 lsp.lua에서 분리한다.
 -- Gradle/Maven classpath 동기화와 Java debug 연결도 이 파일에서 관리한다.
@@ -208,11 +209,13 @@ local function setup_jdtls()
             end
         end,
         -- jdtls 는 UTF-16 offset 을 기대한다.
-        -- incremental sync 에서 stale range 가 생겨 full sync 를 선택한다.
+        -- incremental sync 을 활성화하여 글자 입력에 따른 증분파싱 처리 활성화
+        -- +) 활성화 하지 않으면 매 입력마다 fuul sync 가 발생해 성능 저하
+        -- +) incremental sync 에서 stale range 가 생기는 이슈는 0.10 이전 버전
         offset_encoding = "utf-16",
         flags = {
             debounce_text_changes = JDTLS_DEBOUNCE_TEXT_CHANGES_MS,
-            allow_incremental_sync = false,
+            allow_incremental_sync = true,
         },
         init_options = {
             extendedClientCapabilities = jdtls.extendedClientCapabilities,
@@ -335,12 +338,26 @@ local function setup_jdtls_manual_sync()
         group = group,
         pattern = { "*.java" },
         callback = function(args)
+            -- 기존 Java 파일은 LSP didChange/didSave로 동기화한다.
+            -- 신규 파일은 JDTLS file watcher가 생성 이벤트를 놓칠 수 있으므로
+            -- 최초 저장 시에만 didChangeWatchedFiles(Created)를 보낸다.
+            -- 신규 테스트 파일의 classpath 갱신은 notify_saved_java에서 처리한다.
             local path = vim.api.nvim_buf_get_name(args.buf)
-            local uri = vim.uri_from_bufnr(args.buf)
-            local change_type = java_file_was_created[path] and 1 or 2 -- 1=Created 2=Changed 3=Deleted
+            local created = java_file_was_created[path]
             java_file_was_created[path] = nil
-            for _, client in ipairs(vim.lsp.get_clients({ name = "jdtls" })) do
-                notify_saved_java(client, args, path, uri, change_type)
+
+            if not created then
+                return
+            end
+
+            local uri = vim.uri_from_bufnr(args.buf)
+
+            for _, client in
+                ipairs(vim.lsp.get_clients({
+                    name = "jdtls",
+                }))
+            do
+                notify_saved_java(client, args, path, uri, 1)
             end
         end,
     })

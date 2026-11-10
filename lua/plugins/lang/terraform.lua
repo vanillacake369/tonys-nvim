@@ -18,13 +18,13 @@ return {
             vim.list_extend(opts.ensure_installed, { "terraform", "hcl" })
         end,
     },
-    -- Terraform lint 는 tflint 로 nvim-lint 에 연결한다.
+    -- tflint는 모듈 단위 분석기이므로 terraform-vars에 중복 연결하지 않는다.
+    -- 공통 lint.lua가 저장 시 실행하도록 정책을 제한한다.
     {
         "mfussenegger/nvim-lint",
         opts = function(_, opts)
             opts.linters_by_ft = opts.linters_by_ft or {}
             opts.linters_by_ft.terraform = { "tflint" }
-            opts.linters_by_ft["terraform-vars"] = { "tflint" }
         end,
     },
     -- Terraform formatter 는 terraform fmt 를 conform 에 연결한다.
